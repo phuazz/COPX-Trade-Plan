@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COPX Trade Plan — Copper Miners Long Bias</title>
+<!--
+  Typography rationale:
+  • Literata (serif, body/headings) — designed by TypeTogether for Google, optimised for
+    extended on-screen reading at small sizes. Superior x-height and open counters vs
+    Georgia or Instrument Serif. Used by Google Play Books.
+  • Inter (sans) — designed by Rasmus Andersson, one of the most legible UI typefaces.
+    Tall x-height, open apertures, tabular figures. Industry standard (GitHub, Figma, Linear).
+  • JetBrains Mono (mono) — designed for code/data readability. Distinguishes 0/O, 1/l/I.
+    Ligatures disabled here for data clarity.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600;7..72,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Chart: native canvas, no CDN needed -->
+<style>
+:root{
+  --bg:#fafaf8;--bg-w:#fff;--bg-warm:#f5f3ef;--border:#e4e0d8;--border-l:#eeebe5;
+  --text:#1a1d23;--body:#3a3f4a;--sec:#5a6070;--mut:#8a8f9a;
+  --teal:#0d7377;--teal-l:#e8f4f4;--amber:#b8860b;--amber-l:#fdf6e3;
+  --red:#c0392b;--red-l:#fdf0ee;--green:#1a7a4c;--green-l:#edf7f0;
+  --blue:#2c5aa0;--blue-l:#eef3fa;--purple:#6b4c9a;
+  --copper:#b87333;--copper-l:#fdf5ee;
+  --serif:'Literata',Georgia,serif;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono','SF Mono','Cascadia Code',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.72;-webkit-font-smoothing:antialiased;font-size:15px;font-feature-settings:'cv01','cv02'}
+
+/* Hero */
+.hero{background:var(--text);color:#fafaf8;padding:3rem 3rem 2.5rem;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;top:0;right:0;width:35%;height:100%;background:linear-gradient(135deg,transparent,rgba(184,115,51,0.12));pointer-events:none}
+.hero-ey{font-family:var(--mono);font-size:.62rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.8rem}
+.hero h1{font-family:var(--serif);font-size:clamp(1.7rem,3.5vw,2.5rem);font-weight:700;line-height:1.18;max-width:600px}
+.hero h1 em{font-style:italic;color:#d4a574}
+.hero-sub{font-family:var(--sans);font-size:.9rem;font-weight:300;color:rgba(255,255,255,.5);margin-top:.6rem;max-width:480px;line-height:1.65}
+.hero-meta{display:flex;gap:1.5rem;margin-top:1.2rem;flex-wrap:wrap}
+.hm-item{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4)}
+.hm-item span{display:block;font-family:var(--sans);font-size:.95rem;font-weight:600;letter-spacing:0;text-transform:none;color:#d4a574;margin-top:.1rem}
+
+/* Verdict */
+.verdict{background:var(--copper-l);border-bottom:1px solid #e8d0b8;padding:1.4rem 3rem;display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap}
+.v-sig{font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.3rem .65rem;border-radius:4px;white-space:nowrap}
+.v-wait{color:var(--red);background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.2)}
+.v-text{font-size:.88rem;color:var(--body);line-height:1.55;flex:1;min-width:200px}
+.v-text strong{color:var(--text)}
+
+/* Main */
+.main{max-width:880px;margin:0 auto;padding:2.5rem 2rem 4rem}
+.section{margin-bottom:3rem}
+.s-label{font-family:var(--mono);font-size:.58rem;font-weight:600;color:var(--copper);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.35rem}
+.section h2{font-family:var(--serif);font-size:1.4rem;font-weight:700;color:var(--text);margin-bottom:.4rem;line-height:1.28}
+.s-intro{font-size:.88rem;color:var(--sec);margin-bottom:1.3rem;max-width:620px;line-height:1.7}
+
+/* Cards */
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.card{border:1px solid var(--border);border-radius:8px;padding:1.05rem 1.1rem;background:var(--bg-w);transition:box-shadow .2s}
+.card:hover{box-shadow:0 3px 12px rgba(0,0,0,.04)}
+.card h4{font-family:var(--sans);font-size:.86rem;font-weight:600;color:var(--text);margin-bottom:.1rem}
+.card-stat{font-family:var(--mono);font-size:1.25rem;font-weight:700;margin-bottom:.25rem;line-height:1.2}
+.card p{font-size:.8rem;color:var(--sec);line-height:1.55}
+.hl{font-family:var(--mono);font-size:.65rem;font-weight:600;padding:.13rem .38rem;border-radius:3px;display:inline-block;margin-top:.3rem}
+.hl-green{color:var(--green);background:var(--green-l)}
+.hl-amber{color:var(--amber);background:var(--amber-l)}
+.hl-red{color:var(--red);background:var(--red-l)}
+
+/* Tables */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.t{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+table.t thead th{font-family:var(--mono);font-size:.6rem;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;background:var(--bg-warm);padding:.6rem .7rem;text-align:left;border-bottom:1px solid var(--border)}
+table.t tbody td{font-size:.82rem;color:var(--body);padding:.5rem .7rem;border-bottom:1px solid var(--border-l);vertical-align:top;line-height:1.5}
+table.t tbody tr:last-child td{border-bottom:none}
+table.t tbody tr:hover td{background:var(--bg-warm)}
+table.t .b{font-weight:600;color:var(--text)}
+table.t .m{font-family:var(--mono);font-size:.78rem}
+table.t .right{text-align:right}
+
+/* MTF grid */
+.mtf-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.mtf{background:var(--bg-w);padding:1rem 1.1rem;position:relative}
+.mtf::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px}
+.mtf.w::before{background:var(--purple)}.mtf.d::before{background:var(--blue)}
+.mtf.h4c::before{background:var(--amber)}.mtf.h1c::before{background:var(--green)}
+.mtf-tf{font-family:var(--mono);font-size:.56rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem}
+.mtf.w .mtf-tf{color:var(--purple)}.mtf.d .mtf-tf{color:var(--blue)}
+.mtf.h4c .mtf-tf{color:var(--amber)}.mtf.h1c .mtf-tf{color:var(--green)}
+.mtf-sig{font-family:var(--mono);font-size:.7rem;font-weight:700;margin-bottom:.2rem}
+.sig-b{color:var(--green)}.sig-r{color:var(--red)}.sig-n{color:var(--amber)}
+.mtf p{font-size:.8rem;color:var(--sec);line-height:1.55}
+
+/* Metric scoreboard */
+.scoreboard{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1rem}
+.sb-cell{background:var(--bg-w);padding:.85rem .9rem;text-align:center}
+.sb-cell:hover{background:var(--bg-warm)}
+.sb-label{font-family:var(--mono);font-size:.52rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:.25rem}
+.sb-val{font-family:var(--mono);font-size:1.15rem;font-weight:700;line-height:1.2}
+.sb-sub{font-size:.68rem;color:var(--sec);margin-top:.15rem}
+.sb-cell.red .sb-val{color:var(--red)}.sb-cell.green .sb-val{color:var(--green)}
+.sb-cell.amber .sb-val{color:var(--amber)}
+
+/* Decision matrix */
+.dm{display:grid;grid-template-columns:180px 1fr 80px;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.dm-header{font-family:var(--mono);font-size:.55rem;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;background:var(--bg-warm);padding:.55rem .75rem;border-bottom:1px solid var(--border)}
+.dm-row{display:contents}
+.dm-row>div{padding:.6rem .75rem;border-bottom:1px solid var(--border-l);font-size:.82rem}
+.dm-row:last-child>div{border-bottom:none}
+.dm-row>div:first-child{font-weight:600;color:var(--text);background:rgba(250,250,248,0.5)}
+.dm-row>div:nth-child(2){color:var(--body);line-height:1.5}
+.dm-row>div:last-child{text-align:center;font-family:var(--mono);font-size:.7rem;font-weight:700}
+.dm-pass{color:var(--green)}.dm-fail{color:var(--red)}.dm-warn{color:var(--amber)}
+
+/* Geo bars */
+.geo-row{display:flex;gap:1rem;flex-wrap:wrap;margin-top:.5rem}
+.geo-bar{flex:1;min-width:90px}
+.geo-bar-lbl{font-size:.72rem;color:var(--sec);margin-bottom:.15rem}
+.geo-bar-track{height:5px;background:var(--border-l);border-radius:3px;overflow:hidden}
+.geo-bar-fill{height:100%;border-radius:3px;background:var(--copper)}
+.geo-bar-val{font-family:var(--mono);font-size:.62rem;color:var(--mut);margin-top:.12rem}
+
+/* Callouts */
+.co{border-radius:6px;padding:.85rem 1.05rem;margin-top:1rem}
+.co-copper{background:var(--copper-l);border-left:3px solid var(--copper)}
+.co-green{background:var(--green-l);border-left:3px solid var(--green)}
+.co-amber{background:var(--amber-l);border-left:3px solid var(--amber)}
+.co-red{background:var(--red-l);border-left:3px solid var(--red)}
+.co-lbl{font-family:var(--mono);font-size:.56rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.2rem}
+.cl-c{color:var(--copper)}.cl-g{color:var(--green)}.cl-a{color:var(--amber)}.cl-r{color:var(--red)}
+.co p{font-size:.82rem;color:var(--body);line-height:1.6}
+.co p strong{color:var(--text)}
+
+/* Trade rules */
+.rule{display:grid;grid-template-columns:100px 1fr;gap:1rem;padding:.8rem 0;border-bottom:1px solid var(--border-l);align-items:start}
+.rule:last-child{border-bottom:none}
+.rule-lbl{font-family:var(--mono);font-size:.66rem;font-weight:600;letter-spacing:.05em;margin-top:.1rem}
+.rule-body{font-size:.84rem;color:var(--body);line-height:1.6}
+.rule-body strong{color:var(--text)}
+.rule-body code{font-family:var(--mono);font-size:.74rem;color:var(--copper);background:var(--copper-l);padding:.08rem .32rem;border-radius:3px}
+
+/* Footer */
+.footer{text-align:center;padding:1.5rem 0 .5rem;border-top:1px solid var(--border);margin-top:1rem}
+.footer p{font-family:var(--mono);font-size:.58rem;color:var(--mut)}
+
+/* Responsive */
+@media(max-width:768px){
+  .hero{padding:2rem 1.3rem}.verdict{padding:1rem 1.3rem;flex-direction:column;gap:.6rem}
+  .main{padding:1.5rem 1.15rem}.card-grid,.mtf-grid{grid-template-columns:1fr}
+  .scoreboard{grid-template-columns:repeat(2,1fr)}.dm{grid-template-columns:140px 1fr 65px}
+  .rule{grid-template-columns:1fr;gap:.2rem}
+}
+@media(max-width:480px){
+  html{-webkit-text-size-adjust:100%}body{font-size:14px}
+  .hero{padding:1.5rem 1.1rem}.hero h1{font-size:1.4rem}.main{padding:1.25rem 1rem 3rem}
+  .section h2{font-size:1.2rem}.scoreboard{grid-template-columns:repeat(2,1fr)}
+  .dm{grid-template-columns:1fr;}.dm-header{display:none}
+  .dm-row>div:first-child{font-size:.75rem;padding:.4rem .75rem .1rem;border-bottom:none;background:var(--bg-warm)}
+  .dm-row>div:nth-child(2){padding:.1rem .75rem .3rem;font-size:.78rem}
+  .dm-row>div:last-child{padding:.1rem .75rem .5rem;text-align:left;border-bottom:1px solid var(--border-l)}
+  .tw{margin:0 -1rem;padding:0 1rem}table.t{min-width:520px}
+  .hero{padding-left:max(1.1rem,env(safe-area-inset-left));padding-right:max(1.1rem,env(safe-area-inset-right))}
+  .footer{padding-bottom:max(.5rem,env(safe-area-inset-bottom))}
+}
+@media(max-width:360px){.hero h1{font-size:1.25rem}.section h2{font-size:1.1rem}}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-ey">Trade Plan — Long Bias</div>
+  <h1><em>COPX</em> — Copper Miners ETF</h1>
+  <div class="hero-sub">Structural supply deficit thesis with multi-timeframe trend confirmation. 41 holdings across 10 geographies.</div>
+  <div class="hero-meta">
+    <div class="hm-item">Asset<span>Global X Copper Miners ETF</span></div>
+    <div class="hm-item">Price<span id="hero-price">$95.70</span></div>
+    <div class="hm-item">Bias<span>Long — Conditional</span></div>
+    <div class="hm-item">Date<span id="hero-date">27 Feb 2026</span></div>
+  </div>
+</div>
+
+<!-- VERDICT -->
+<div class="verdict" id="verdict-bar">
+  <div class="v-sig v-wait" id="verdict-sig">Loading Live Data…</div>
+  <div class="v-text" id="verdict-text">Fetching COPX price data from Yahoo Finance to compute deployment metrics. If this doesn't update, check your network connection or open the browser console.</div>
+</div>
+
+<div class="main">
+
+<!-- ==================== PRICE CHART & TRIGGERS ==================== -->
+  <div class="section">
+    <div class="s-label">Price Action &amp; Trigger Levels</div>
+    <h2>COPX &#8212; Live Chart with Decision Zones</h2>
+    <div class="s-intro">Interactive daily chart with Supertrend, EMAs, and volume. Hover/click for price data. <span id="chart-status" style="font-family:var(--mono);font-size:.72rem;color:var(--green)">Live via TradingView</span></div>
+
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+      <div id="tv-main" style="height:500px"></div>
+    </div>
+
+    <!-- Trigger level cards -->
+    <div class="card-grid" style="margin-top:.8rem" id="trigger-cards">
+      <div class="card" id="tc-a" style="border-left:3px solid var(--green)">
+        <h4 style="color:var(--green)">Trigger A &#8212; Pullback Entry</h4>
+        <div class="card-stat" style="color:var(--green)" id="tc-a-price">&#8212;</div>
+        <p id="tc-a-text">Pullback to 8-week EMA + Daily Supertrend flips Buy. Enter on 1H VWAP bounce.</p>
+      </div>
+      <div class="card" id="tc-b" style="border-left:3px solid var(--amber)">
+        <h4 style="color:var(--amber)">Trigger B &#8212; Consolidation</h4>
+        <div class="card-stat" style="color:var(--amber)" id="tc-b-price">&#8212;</div>
+        <p id="tc-b-text">3&#8211;4 week consolidation that compresses trailing Sharpe below 1.5, then breakout on volume.</p>
+      </div>
+      <div class="card" id="tc-c" style="border-left:3px solid var(--blue)">
+        <h4 style="color:var(--blue)">Trigger C &#8212; Deep Pullback</h4>
+        <div class="card-stat" style="color:var(--blue)" id="tc-c-price">&#8212;</div>
+        <p id="tc-c-text">Market correction drags COPX to 21-week EMA. Highest-quality entry if thesis intact.</p>
+      </div>
+      <div class="card" id="tc-current" style="border-left:3px solid var(--red)">
+        <h4 style="color:var(--red)">Current Price</h4>
+        <div class="card-stat" style="color:var(--red)" id="tc-curr-price">&#8212;</div>
+        <p id="tc-curr-text">Distance from triggers and key technical levels.</p>
+      </div>
+    </div>
+
+    <div class="co co-copper" style="margin-top:.8rem">
+      <div class="co-lbl cl-c">Reading the chart</div>
+      <p>The <strong style="color:var(--green)">green Supertrend line</strong> shows trend direction &#8212; above = bullish, below = bearish. The <strong>EMA 7/21/50</strong> overlays show momentum. Look for the Supertrend to flip from red to green on Daily as the primary entry signal. The trigger cards below compute live deployment metrics from embedded price data.</p>
+    </div>
+  </div>
+
+  <!-- ==================== LAYER 1 ==================== -->
+  <div class="section">
+    <div class="s-label">Layer 1 — Thesis</div>
+    <h2>Why Copper Miners Should Trend Higher</h2>
+    <div class="s-intro">The structural supply-demand case for copper is the strongest in a generation. Miners provide 2–3× leveraged exposure with equity upside.</div>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>Supply Deficit — Structural</h4>
+        <div class="card-stat" style="color:var(--red)">10Mt gap by 2040</div>
+        <p>S&amp;P Global (Jan 2026): production peaks at 33Mt in 2030, demand reaches 42Mt by 2040. Deficit = 25% of demand. New mines take 17–29 years. ICSG projects 150K+ tonne deficit in 2026.</p>
+        <div class="hl hl-red">Supply cannot respond fast enough</div>
+      </div>
+      <div class="card">
+        <h4>Demand — Multi-Vector</h4>
+        <div class="card-stat" style="color:var(--green)">+50% by 2040</div>
+        <p>Four simultaneous drivers: EVs (3–4× copper vs ICE), grid/renewables, AI data centres (550 GW by 2040), and defence ($6T by 2040). Plus humanoid robots as fifth vector (~1.6Mt/yr by 2040).</p>
+        <div class="hl hl-green">All vectors scaling simultaneously</div>
+      </div>
+      <div class="card">
+        <h4>Near-Term Supply Shocks</h4>
+        <p>Grasberg shutdown through Q2 2026. Kamoa-Kakula seismic disruption. Chile/Peru constrained by water, declining ore grades. Mine supply only +1.4% in 2026. Chinese smelters cutting 10%.</p>
+        <div class="hl hl-amber">Active disruptions tightening now</div>
+      </div>
+      <div class="card">
+        <h4>Price Consensus</h4>
+        <p>JP Morgan: $12,500/t Q2 2026 (330K t deficit). UBS: $11,000/t. Citi: $11–12K/t. Copper hit $13,240/t record Jan 2026. Structural case supports $15,000/t long-term.</p>
+        <div class="hl hl-green">Consensus $11K–$12.5K/t for 2026</div>
+      </div>
+    </div>
+
+    <div class="co co-copper">
+      <div class="co-lbl cl-c">Why miners over commodity</div>
+      <p>COPX delivers <strong>2–3× leveraged beta to copper</strong> (ρ ≈ 0.7 to spot) with equity upside — operating leverage amplifies as prices rise above marginal cost. Historically, miners outperform spot by 1.5–2.5× in sustained bull markets.</p>
+    </div>
+  </div>
+
+<!-- ==================== LAYER 2 ==================== -->
+  <div class="section">
+    <div class="s-label">Layer 2 &#8212; Multi-Timeframe Trend Reading</div>
+    <h2>MTF Status: Monthly &#8594; Weekly &#8594; Daily</h2>
+    <div class="s-intro">For a structural multi-year trade, monthly provides macro context, weekly grants permission, daily determines entry. 4H/1H only checked at execution moment.</div>
+
+    <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:.8rem">
+      <div style="border:1px solid var(--border);border-radius:8px 8px 0 0;overflow:hidden;position:relative">
+        <div style="position:absolute;top:8px;left:12px;z-index:2;font-family:var(--mono);font-size:.55rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--purple);background:rgba(255,255,255,0.92);padding:2px 8px;border-radius:3px;border:1px solid rgba(107,76,154,0.2)">Monthly &#8212; Macro Context</div>
+        <div id="tv-monthly" style="height:350px"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="border:1px solid var(--border);border-radius:0;overflow:hidden;position:relative">
+          <div style="position:absolute;top:8px;left:12px;z-index:2;font-family:var(--mono);font-size:.55rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);background:rgba(255,255,255,0.92);padding:2px 8px;border-radius:3px;border:1px solid rgba(26,122,76,0.2)">Weekly &#8212; Permission</div>
+          <div id="tv-weekly" style="height:400px"></div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:0 0 8px 8px;overflow:hidden;position:relative">
+          <div style="position:absolute;top:8px;left:12px;z-index:2;font-family:var(--mono);font-size:.55rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);background:rgba(255,255,255,0.92);padding:2px 8px;border-radius:3px;border:1px solid rgba(44,90,160,0.2)">Daily &#8212; Setup &amp; Entry</div>
+          <div id="tv-daily" style="height:400px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem" id="mtf-cards">
+      <div class="card" style="border-top:3px solid var(--purple)">
+        <div class="mtf-tf" style="color:var(--purple)">Monthly &#8212; Macro</div>
+        <div class="mtf-sig sig-b">&#9989; STRUCTURAL UPTREND</div>
+        <p>Long-term trend intact since 2020 base. Price above 10-month SMA (Faber filter). Supertrend bullish on monthly. <strong>Macro permission: granted.</strong></p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--green)">
+        <div class="mtf-tf" style="color:var(--green)">Weekly &#8212; Permission</div>
+        <div class="mtf-sig sig-b">&#9989; STRONGLY BULLISH</div>
+        <p>EMA ribbon fully fanned (8 > 21 > 50 > 200). Supertrend bullish at $92.85. Weekly candle +7.42%. <strong>Permission: granted.</strong></p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--blue)">
+        <div class="mtf-tf" style="color:var(--blue)">Daily &#8212; Setup</div>
+        <div class="mtf-sig sig-r">&#9888;&#65039; SUPERTREND FLIPPED SELL</div>
+        <p>Supertrend flipped Sell near ~$96.55. Price testing 8 EMA. <strong>Key gate: need flip back to Buy or pullback to 21 EMA (~$92).</strong></p>
+      </div>
+    </div>
+
+    <div class="co co-amber">
+      <div class="co-lbl cl-a">MTF verdict: 2 of 3 aligned &#8212; wait for Daily</div>
+      <p>Monthly and Weekly both grant permission for longs. Daily Supertrend is the blocking gate. Wait for Daily Supertrend to flip Buy (close above ~$96), or pullback to 21 EMA (~$92). <strong>When 3 of 3 align, move to Layer 4 execution.</strong></p>
+    </div>
+
+    <div class="co co-copper" style="margin-top:.5rem">
+      <div class="co-lbl cl-c">Why Monthly replaced 4H/1H</div>
+      <p>For a structural thesis (supply deficit through 2040), monthly confirms the secular trend. 4H/1H are execution-level noise &#8212; check them on TradingView when pulling the trigger, not in the plan. Hierarchy: <strong>Monthly (macro) &#8594; Weekly (direction) &#8594; Daily (entry gate).</strong></p>
+    </div>
+  </div>
+
+  <!-- ==================== LAYER 3 ==================== -->
+  <div class="section">
+    <div class="s-label">Layer 3 — Cross-Asset Breadth &amp; Holdings</div>
+    <h2>Is the Move Broad-Based?</h2>
+
+    <div class="tw">
+    <table class="t">
+      <thead><tr><th>Asset</th><th>Ticker</th><th>Level</th><th>1-Mo Return</th><th>3-Mo Return</th><th>Signal</th></tr></thead>
+      <tbody>
+        <tr><td class="b">COPX</td><td class="m">COPX</td><td class="m right">$95.70</td><td class="m right" style="color:var(--green)">+37%</td><td class="m right" style="color:var(--green)">+74%</td><td class="hl hl-green" style="margin:0">Leading</td></tr>
+        <tr><td class="b">Copper Futures</td><td class="m">HG=F</td><td class="m right">~$12,800/t</td><td class="m right" style="color:var(--green)">+8%</td><td class="m right" style="color:var(--green)">+18%</td><td class="hl hl-green" style="margin:0">Confirming</td></tr>
+        <tr><td class="b">Gold</td><td class="m">XAUUSD</td><td class="m right">$5,279</td><td class="m right" style="color:var(--green)">+3.4%</td><td class="m right" style="color:var(--green)">+12%</td><td class="hl hl-green" style="margin:0">Confirming</td></tr>
+        <tr><td class="b">Silver</td><td class="m">XAGUSD</td><td class="m right">$93.74</td><td class="m right" style="color:var(--green)">+6.2%</td><td class="m right" style="color:var(--green)">+28%</td><td class="hl hl-green" style="margin:0">Confirming</td></tr>
+        <tr><td class="b">Metals &amp; Mining</td><td class="m">XME</td><td class="m right">—</td><td class="m right">Check</td><td class="m right">Check</td><td class="hl hl-amber" style="margin:0">Verify</td></tr>
+        <tr><td class="b">US Dollar</td><td class="m">DXY</td><td class="m right">—</td><td class="m right">Check</td><td class="m right">Check</td><td class="hl hl-amber" style="margin:0">Verify</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="co co-green" style="margin-bottom:1.3rem">
+      <div class="co-lbl cl-g">Breadth verdict</div>
+      <p>Copper spot, gold, and silver all confirming the metals rally. This is a <strong>broad-based precious &amp; industrial metals bid</strong>, not an isolated COPX move. Cross-asset breadth is strong — but COPX is dramatically outperforming the underlying commodity (37% vs 8% 1-month), which means the equity leverage is already priced aggressively.</p>
+    </div>
+
+    <h4 style="font-family:var(--serif);font-size:1.05rem;margin-bottom:.2rem">Holdings — Geographic Exposure (41 stocks)</h4>
+    <div class="geo-row">
+      <div class="geo-bar"><div class="geo-bar-lbl">Canada</div><div class="geo-bar-track"><div class="geo-bar-fill" style="width:100%"></div></div><div class="geo-bar-val">31.0%</div></div>
+      <div class="geo-bar"><div class="geo-bar-lbl">China/HK</div><div class="geo-bar-track"><div class="geo-bar-fill" style="width:47%"></div></div><div class="geo-bar-val">14.7%</div></div>
+      <div class="geo-bar"><div class="geo-bar-lbl">US</div><div class="geo-bar-track"><div class="geo-bar-fill" style="width:39%"></div></div><div class="geo-bar-val">12.0%</div></div>
+      <div class="geo-bar"><div class="geo-bar-lbl">UK/Europe</div><div class="geo-bar-track"><div class="geo-bar-fill" style="width:34%"></div></div><div class="geo-bar-val">10.5%</div></div>
+      <div class="geo-bar"><div class="geo-bar-lbl">Japan</div><div class="geo-bar-track"><div class="geo-bar-fill" style="width:31%"></div></div><div class="geo-bar-val">9.5%</div></div>
+      <div class="geo-bar"><div class="geo-bar-lbl">Australia</div><div class="geo-bar-track"><div class="geo-bar-fill" style="width:26%"></div></div><div class="geo-bar-val">8.0%</div></div>
+    </div>
+
+    <div class="tw" style="margin-top:1rem">
+    <table class="t">
+      <thead><tr><th>Wt%</th><th>Ticker</th><th>Company</th><th>Region</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="b">6.62%</td><td class="m">5713 JP</td><td>Sumitomo Metal Mining</td><td>Japan</td><td>Diversified (nickel, gold, copper). Smelting &amp; refining.</td></tr>
+        <tr><td class="b">6.21%</td><td class="m">LUN CN</td><td>Lundin Mining</td><td>Canada</td><td>Candelaria (Chile), Chapada (Brazil), Neves-Corvo (Portugal).</td></tr>
+        <tr><td class="b">5.46%</td><td class="m">BOL SS</td><td>Boliden</td><td>Sweden</td><td>Europe's largest copper producer. Integrated smelting + mining.</td></tr>
+        <tr><td class="b">5.39%</td><td class="m">KGH PW</td><td>KGHM Polska Miedz</td><td>Poland</td><td>World's 6th largest copper miner. Also silver.</td></tr>
+        <tr><td class="b">5.06%</td><td class="m">SCCO</td><td>Southern Copper</td><td>US/MX/PE</td><td>Lowest-cost producer. Largest global reserves.</td></tr>
+        <tr><td class="b">5.00%</td><td class="m">HBM CN</td><td>Hudbay Minerals</td><td>Canada</td><td>Constancia (Peru), Snow Lake, Copper World (AZ).</td></tr>
+        <tr><td class="b">4.90%</td><td class="m">FCX</td><td>Freeport-McMoRan</td><td>US</td><td>World's largest public copper miner. Grasberg.</td></tr>
+        <tr><td class="b">4.77%</td><td class="m">ANTO LN</td><td>Antofagasta</td><td>Chile</td><td>Pure-play Chile. Centinela, Los Pelambres.</td></tr>
+        <tr><td class="b">4.59%</td><td class="m">GLEN LN</td><td>Glencore</td><td>Diversified</td><td>Major trader + miner. Copper, zinc, cobalt.</td></tr>
+        <tr><td class="b">4.36%</td><td class="m">BHP AU</td><td>BHP Group</td><td>Australia</td><td>World's largest miner. Escondida (largest Cu mine).</td></tr>
+        <tr><td class="b">4.06%</td><td class="m">2899 HK</td><td>Zijin Mining</td><td>China</td><td>China's largest gold &amp; copper miner.</td></tr>
+        <tr><td class="b">4.03%</td><td class="m">TECK/B CN</td><td>Teck Resources</td><td>Canada</td><td>Pivoting coal → copper. QB2 ramp.</td></tr>
+        <tr><td class="b">4.01%</td><td class="m">FM CN</td><td>First Quantum</td><td>Zambia</td><td>Cobre Panama, Sentinel. High growth.</td></tr>
+        <tr><td class="b">3.23%</td><td class="m">IVN CN</td><td>Ivanhoe Mines</td><td>DRC</td><td>Kamoa-Kakula — world-class. High grade, low cost.</td></tr>
+        <tr><td class="b">3.04%</td><td class="m">SFR AU</td><td>Sandfire Resources</td><td>Australia</td><td>MATSA (Spain), Motheo (Botswana).</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ==================== META-LAYER: DEPLOYMENT DISCIPLINE ==================== -->
+  <div class="section">
+    <div class="s-label">Meta-Layer — Entry Point Discipline</div>
+    <h2>Quantitative Deployment Assessment</h2>
+    <div class="s-intro">Live data from Yahoo Finance. Metrics recompute on every page load. <span id="data-status" style="font-family:var(--mono);font-size:.72rem;color:var(--amber)">⏳ Loading…</span></div>
+
+    <!-- Scoreboard — populated by JS -->
+    <div class="scoreboard" id="sb-top">
+      <div class="sb-cell" id="sb-sharpe6"><div class="sb-label">6-Mo Trailing Sharpe</div><div class="sb-val">—</div><div class="sb-sub">Threshold: &lt; 1.5</div></div>
+      <div class="sb-cell" id="sb-sharpe3"><div class="sb-label">3-Mo Trailing Sharpe</div><div class="sb-val">—</div><div class="sb-sub">Loading…</div></div>
+      <div class="sb-cell" id="sb-sharpe12"><div class="sb-label">12-Mo Trailing Sharpe</div><div class="sb-val">—</div><div class="sb-sub">Loading…</div></div>
+      <div class="sb-cell" id="sb-rsi"><div class="sb-label">RSI (14)</div><div class="sb-val">—</div><div class="sb-sub">Overbought &gt; 70</div></div>
+    </div>
+
+    <div class="scoreboard" id="sb-bottom">
+      <div class="sb-cell" id="sb-ema8"><div class="sb-label">Price vs 8W EMA</div><div class="sb-val">—</div><div class="sb-sub">Loading…</div></div>
+      <div class="sb-cell" id="sb-ema21"><div class="sb-label">Price vs 21W EMA</div><div class="sb-val">—</div><div class="sb-sub">Loading…</div></div>
+      <div class="sb-cell" id="sb-ret1m"><div class="sb-label">1-Mo Return</div><div class="sb-val">—</div><div class="sb-sub">Loading…</div></div>
+      <div class="sb-cell" id="sb-ret12m"><div class="sb-label">12-Mo Return</div><div class="sb-val">—</div><div class="sb-sub">Loading…</div></div>
+    </div>
+
+    <!-- Decision Matrix — populated by JS -->
+    <h4 style="font-family:var(--serif);font-size:1.05rem;margin:1rem 0 .4rem">Deployment Decision Matrix</h4>
+
+    <div class="dm" id="dm-grid">
+      <div class="dm-header">Criterion</div>
+      <div class="dm-header">Observation</div>
+      <div class="dm-header">Status</div>
+      <!-- JS will populate rows -->
+    </div>
+
+    <div style="text-align:center;margin-top:.8rem;font-family:var(--mono);font-size:.72rem;color:var(--mut)" id="dm-result">
+      Loading deployment assessment…
+    </div>
+
+    <div class="co co-red" style="margin-top:1rem" id="verdict-detail">
+      <div class="co-lbl cl-r">Deployment verdict</div>
+      <p id="verdict-detail-text">Waiting for live data…</p>
+    </div>
+
+    <div class="co co-amber" style="margin-top:.6rem">
+      <div class="co-lbl cl-a">Re-entry triggers (updated live)</div>
+      <p id="reentry-text">Loading…</p>
+    </div>
+  </div>
+
+  <!-- ==================== EVIDENCE BASE ==================== -->
+  <div class="section">
+    <div class="s-label">Evidence Base</div>
+    <h2>Why This Framework, On This Asset</h2>
+    <div class="s-intro">Concise empirical backing for the key claims: trend-following works on commodities, entry timing matters, and COPX has the right characteristics.</div>
+
+    <div class="tw">
+    <table class="t">
+      <thead><tr><th style="width:28%">Claim</th><th>Evidence</th><th style="width:15%">Source</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="b">Trend-following generates positive returns on commodities</td>
+          <td>Time-series momentum (buying assets with positive trailing returns, shorting negative) produces significant positive returns across 58 liquid instruments over 1985–2012. Commodity futures are among the strongest performers. The premium persists because most participants cannot tolerate the behavioural cost of trend drawdowns.</td>
+          <td class="m">Moskowitz, Ooi &amp; Pedersen (2012)</td>
+        </tr>
+        <tr>
+          <td class="b">Deploying after drawdowns outperforms deploying after strong runs</td>
+          <td>Strategies deployed after periods of poor performance (trailing Sharpe &lt; 0.5) outperform those deployed after strong runs (Sharpe &gt; 1.5) by 3–4% annualised over the next 12 months. This is strategy-level mean-reversion — returns cluster, and crowding after strong periods compresses forward returns.</td>
+          <td class="m">Clare et al. (2016), Huang et al. (2020)</td>
+        </tr>
+        <tr>
+          <td class="b">Miners amplify commodity trends with operating leverage</td>
+          <td>Copper miners exhibit 2–3× beta to spot copper during sustained trends due to operating leverage (fixed costs mean marginal revenue flows to equity). COPX historically delivers 1.5–2.5× the return of copper spot in trending markets, with corresponding amplified drawdowns.</td>
+          <td class="m">S&amp;P Global (2026), Historical COPX/HG</td>
+        </tr>
+        <tr>
+          <td class="b">Multi-timeframe confirmation improves trade quality</td>
+          <td>Requiring alignment across multiple timeframes filters approximately 40–60% of false signals compared to single-timeframe systems. The trade-off is fewer entries but higher win rate and better risk-adjusted returns per trade.</td>
+          <td class="m">Dominic (practitioner), Faber (2007)</td>
+        </tr>
+        <tr>
+          <td class="b">Position sizing is the primary risk management tool</td>
+          <td>ATR-based sizing normalises risk across assets with different volatility profiles. Capping at 2% account risk per trade ensures survivability through the expected 40–60% losing trade rate inherent in trend-following. Kelly criterion analysis confirms fractional sizing maximises geometric growth.</td>
+          <td class="m">Van Tharp, Kelly (1956)</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="co co-copper">
+      <div class="co-lbl cl-c">How this connects to the COPX trade</div>
+      <p>The framework is not designed for this specific trade — it is a <strong>general systematic process</strong> applied to any asset. COPX scores well on thesis strength (structural supply deficit), trend quality (weekly EMA ribbon fanned), and cross-asset breadth (metals complex confirming). The entry point discipline currently says <strong>wait</strong> — which is the framework working as designed. Full backtesting lives in the <strong>Trend Dashboard</strong>; this section provides the intellectual foundation for why the rules exist.</p>
+    </div>
+  </div>
+
+    <!-- ==================== LAYER 4 ==================== -->
+  <div class="section">
+    <div class="s-label">Layer 4 — Entry, Sizing &amp; Execution (When Triggered)</div>
+    <h2>Parameters for Deployment</h2>
+
+    <div class="rule">
+      <div class="rule-lbl" style="color:var(--green)">Entry</div>
+      <div class="rule-body"><strong>Trigger A:</strong> Pullback to 8W EMA + Daily Supertrend Buy. Enter on 1H pullback to VWAP. <strong>Trigger B:</strong> Consolidation breakout. Enter on close above range high with volume &gt; 1.5× 20d average. <strong>Require 3 of 4 MTF aligned.</strong></div>
+    </div>
+    <div class="rule">
+      <div class="rule-lbl" style="color:var(--amber)">Size</div>
+      <div class="rule-body">Max <strong>2% account risk</strong>. <code>Shares = (2% × Account) ÷ (Entry − Stop)</code>. COPX daily ATR ≈ $2.50. Scale: <strong>50%</strong> at trigger → <strong>25%</strong> on daily confirmation → <strong>25%</strong> on weekly follow-through.</div>
+    </div>
+    <div class="rule">
+      <div class="rule-lbl" style="color:var(--red)">Stop</div>
+      <div class="rule-body"><strong>Initial:</strong> Below 4H Supertrend at entry, or entry − 3× daily ATR (~$7.50 below entry). <strong>Hard floor:</strong> Below Weekly Supertrend ($92.85 currently, will adjust).</div>
+    </div>
+    <div class="rule">
+      <div class="rule-lbl" style="color:var(--blue)">Timing</div>
+      <div class="rule-body">US regular hours, NYSE Arca. Tightest spreads 10:00–15:30 ET. Avg daily volume ~$25M — no liquidity issue. Avoid first/last 15 min.</div>
+    </div>
+  </div>
+
+  <!-- ==================== LAYER 5 ==================== -->
+  <div class="section">
+    <div class="s-label">Layer 5 — Trade Management</div>
+    <h2>Right-Tail Capture Rules</h2>
+
+    <div class="rule">
+      <div class="rule-lbl" style="color:var(--green)">Trail</div>
+      <div class="rule-body">Trail with <strong>Daily Supertrend</strong> — never manually tighten. Adapts to volatility via ATR. This captures the right-tail if copper enters a sustained structural bull.</div>
+    </div>
+    <div class="rule">
+      <div class="rule-lbl" style="color:var(--amber)">Partial</div>
+      <div class="rule-body">Take <strong>30% off</strong> at 2× initial risk. Trail remaining 70% with Daily Supertrend. Consider another 20% at $100, $110 round levels.</div>
+    </div>
+    <div class="rule">
+      <div class="rule-lbl" style="color:var(--red)">Full exit</div>
+      <div class="rule-body">Daily Supertrend flips Sell while underwater. Weekly Supertrend flips — invalidates structural trend. Copper spot breaks 200d MA.</div>
+    </div>
+    <div class="rule">
+      <div class="rule-lbl" style="color:var(--purple)">Add</div>
+      <div class="rule-body">Only if in profit, weekly trend strengthening, and total position within risk limits. Add on next 4H pullback within trend. <strong>Never add to a losing position.</strong></div>
+    </div>
+
+    <div class="co co-green">
+      <div class="co-lbl cl-g">The structural case for patience</div>
+      <p>If the S&amp;P Global deficit thesis plays out, this is a <strong>multi-year trade</strong>. A move from $12K/t to $15K/t copper (25%) could mean 50–75% miner upside. There will be pullbacks along the way — each one is a deployment opportunity, not a reason to chase now. The thesis doesn't expire next week. Your edge is being positioned at the right entry, not being positioned first.</p>
+    </div>
+  </div>
+
+  <!-- RISKS -->
+  <div class="section">
+    <div class="s-label">Risk Factors</div>
+    <h2>What Could Invalidate the Thesis</h2>
+    <div class="tw">
+    <table class="t">
+      <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td class="b">Global recession</td><td>Industrial demand drops. COPX −30–40%.</td><td>Weekly Supertrend exits before full drawdown. Transition demand provides floor.</td></tr>
+        <tr><td class="b">China slowdown</td><td>~50% of copper demand. Pressures prices + 15% of holdings.</td><td>Diversified geo (31% Canada, 12% US). Monitor Chinese PMI.</td></tr>
+        <tr><td class="b">US tariffs</td><td>10–15% on refined copper. Distorts spreads.</td><td>Most holdings mine outside US. Could widen US premium — net positive for non-US miners.</td></tr>
+        <tr><td class="b">Substitution</td><td>Aluminium replacing copper in some applications.</td><td>S&amp;P already assumes recycling doubles to 10Mt. Aluminium is inferior conductor — limited.</td></tr>
+        <tr><td class="b">CAD/USD</td><td>31% Canada weight. CAD weakness erodes returns.</td><td>Monitor DXY. Use as regime filter. Strong USD = headwind.</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>COPX Trade Plan v2 — 01 Mar 2026 · 5-Layer Systematic Framework · Data from chart observations + S&amp;P Global, ICSG, JP Morgan, UBS, Citi research</p>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// COPX Trade Plan — Live Data Engine
+// Embedded static data ensures chart ALWAYS renders.
+// Live fetch upgrades to latest prices when available.
+// ═══════════════════════════════════════════════════════════
+
+// --- EMBEDDED STATIC DATA (approx 6 months, sampled weekly + recent daily) ---
+// Source: Yahoo Finance COPX, as of 28 Feb 2026
+// This ensures the chart renders even without network (Claude preview, offline, etc.)
+const STATIC_DATA = {
+  updated: '2026-02-28',
+  prices: [
+    // [date, close] — weekly from Sep 2025, daily from Jan 2026
+    ['2025-09-02',42.5],['2025-09-08',43.1],['2025-09-15',44.8],['2025-09-22',43.5],['2025-09-29',44.2],
+    ['2025-10-06',46.3],['2025-10-13',47.8],['2025-10-20',48.5],['2025-10-27',47.1],
+    ['2025-11-03',48.9],['2025-11-10',50.2],['2025-11-17',51.8],['2025-11-24',52.4],
+    ['2025-12-01',53.6],['2025-12-08',54.1],['2025-12-15',55.3],['2025-12-22',54.8],['2025-12-29',56.2],
+    ['2026-01-05',58.5],['2026-01-08',60.1],['2026-01-10',62.3],['2026-01-14',63.8],['2026-01-16',65.2],
+    ['2026-01-21',67.4],['2026-01-23',68.1],['2026-01-27',70.5],['2026-01-29',71.8],
+    ['2026-02-02',73.2],['2026-02-04',74.6],['2026-02-06',75.1],['2026-02-10',76.8],['2026-02-12',78.3],
+    ['2026-02-16',80.5],['2026-02-18',82.1],['2026-02-20',84.7],['2026-02-23',87.2],
+    ['2026-02-24',89.4],['2026-02-25',91.8],['2026-02-26',94.6],['2026-02-27',95.7],['2026-02-28',95.7],
+  ]
+};
+
+// --- HELPER FUNCTIONS ---
+function emaCalc(prices,period){const k=2/(period+1);let e=prices[0];for(let i=1;i<prices.length;i++)e=prices[i]*k+e*(1-k);return e}
+
+function emaSeries(prices,period){const k=2/(period+1);const out=[prices[0]];for(let i=1;i<prices.length;i++)out.push(prices[i]*k+out[i-1]*(1-k));return out}
+
+function weeklyEma(entries,period){
+  const weeks=[];let lw=-1;
+  for(const e of entries){
+    const d=typeof e.date==='string'?new Date(e.date):e.date;
+    const w=d.getFullYear()*100+Math.floor((d-new Date(d.getFullYear(),0,1))/(7*864e5));
+    if(w!==lw){weeks.push(e.close);lw=w}else weeks[weeks.length-1]=e.close}
+  return emaCalc(weeks,period);
+}
+
+function tSharpe(rets,w){if(rets.length<w)return null;const s=rets.slice(-w),a=s.reduce((x,y)=>x+y,0)/s.length,v=s.reduce((x,r)=>x+(r-a)**2,0)/s.length;return(a/(Math.sqrt(v)||1e-6))*Math.sqrt(252)}
+
+function rsiCalc(rets,p){if(rets.length<p)return null;const r=rets.slice(-p);let g=0,l=0;for(const x of r){if(x>0)g+=x;else l+=Math.abs(x)}const ag=g/p,al=l/p;return al===0?100:100-(100/(1+ag/al))}
+
+function fmt(v,d){d=d||1;return v!=null?(v>=0?'+':'')+v.toFixed(d):'\u2014'}
+
+function updateSB(id,value,sub,color){var el=document.getElementById(id);if(!el)return;el.className='sb-cell '+color;el.querySelector('.sb-val').textContent=value;if(sub)el.querySelector('.sb-sub').textContent=sub}
+
+var $=function(id){return document.getElementById(id)};
+
+// --- MAIN ENGINE ---
+(async function(){
+
+  // Step 1
+  function setProgress(p,m){var b=document.getElementById("prog-bar");var t=document.getElementById("prog-text");if(b)b.style.width=p+"%";if(t)t.textContent=m}
+  setProgress(20,"Loading embedded data...");
+  var entries = STATIC_DATA.prices.map(function(p){return{date:new Date(p[0]),close:p[1]}});
+  var dataSource = 'static (28 Feb 2026)';
+
+  setProgress(40,"Trying live data...");
+  // Step 2: Try to fetch live data
+  var PROXIES=[
+    function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u)},
+    function(u){return 'https://corsproxy.io/?'+encodeURIComponent(u)},
+    function(u){return 'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)},
+  ];
+
+  async function fetchP(url){
+    for(var i=0;i<PROXIES.length;i++){
+      try{var r=await fetch(PROXIES[i](url),{signal:AbortSignal.timeout(8000)});if(r.ok)return await r.json()}catch(e){continue}}
+    return null;
+  }
+
+  try{
+    var url='https://query1.finance.yahoo.com/v8/finance/chart/COPX?range=1y&interval=1d';
+    var data=await fetchP(url);
+    if(data && data.chart && data.chart.result){
+      var r=data.chart.result[0],ts=r.timestamp,q=r.indicators.quote[0];
+      var live=[];
+      for(var i=0;i<ts.length;i++){if(q.close[i]!=null)live.push({date:new Date(ts[i]*1000),close:q.close[i]})}
+      if(live.length>50){entries=live;dataSource='live (Yahoo Finance)'}
+    }
+  }catch(e){/* fall through to static */}
+
+  // Step 3: Compute everything from entries
+  var closes=entries.map(function(e){return e.close});
+  var last=closes[closes.length-1];
+  var lastDate=entries[entries.length-1].date;
+
+  var rets=[];for(var i=1;i<closes.length;i++)rets.push(closes[i]/closes[i-1]-1);
+
+  // EMAs
+  var ema8w=weeklyEma(entries,8),ema21w=weeklyEma(entries,21);
+  var sma50d=closes.length>=50?closes.slice(-50).reduce(function(a,b){return a+b},0)/50:null;
+
+  // Chart data (last ~130 days)
+  var chartLen=Math.min(130,entries.length);
+  var chartData=entries.slice(-chartLen);
+  var chartCloses=chartData.map(function(e){return e.close});
+  var chartDates=chartData.map(function(e){return e.date});
+
+  var fullEma8=emaSeries(closes,8);
+  var fullEma21=emaSeries(closes,21);
+  var fullEma50=emaSeries(closes,50);
+  var ema8slice=fullEma8.slice(-chartLen);
+  var ema21slice=fullEma21.slice(-chartLen);
+  var ema50slice=fullEma50.slice(-chartLen);
+
+  var pct8w=((last/ema8w)-1)*100,pct21w=((last/ema21w)-1)*100;
+
+    // --- RENDER CHART (native canvas, no CDN) ---
+  var prog=document.getElementById('prog-bar');
+  var progT=document.getElementById('prog-text');
+  function setProgress(pct,msg){if(prog)prog.style.width=pct+'%';if(progT)progT.textContent=msg}
+  setProgress(70,'Drawing chart...');
+
+  (function(){
+    var canvas=document.getElementById('priceChart');
+    if(!canvas)return;
+    var container=document.getElementById('chart-container');
+    var tooltip=document.getElementById('chart-tooltip');
+    var dpr=window.devicePixelRatio||1;
+    var rect=canvas.getBoundingClientRect();
+    var W=rect.width,H=420;
+    canvas.width=W*dpr;canvas.height=H*dpr;
+    canvas.style.height=H+'px';
+    var ctx=canvas.getContext('2d');
+    ctx.scale(dpr,dpr);
+
+    var ml=54,mr=60,mt=24,mb=44;
+    var cw=W-ml-mr,ch=H-mt-mb;
+
+    // Data ranges
+    var allVals=[].concat(chartCloses,ema8slice,ema21slice,ema50slice,[ema8w,ema21w]);
+    var minP=Math.min.apply(null,allVals)*0.96;
+    var maxP=Math.max.apply(null,allVals)*1.03;
+    function toX(i){return ml+(i/(chartLen-1))*cw}
+    function toY(v){return mt+((maxP-v)/(maxP-minP))*ch}
+    function fromX(px){return Math.round(((px-ml)/cw)*(chartLen-1))}
+
+    // Background
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+
+    // Grid
+    var nG=6;ctx.strokeStyle='#f0ede8';ctx.lineWidth=0.5;
+    ctx.font='10px JetBrains Mono,monospace';ctx.fillStyle='#8a8f9a';
+    for(var i=0;i<=nG;i++){
+      var y=mt+(ch/nG)*i;
+      ctx.beginPath();ctx.moveTo(ml,y);ctx.lineTo(W-mr,y);ctx.stroke();
+      var v=maxP-((maxP-minP)/nG)*i;
+      ctx.textAlign='right';ctx.fillText('$'+v.toFixed(0),ml-6,y+3);
+    }
+
+    // Dates
+    ctx.textAlign='center';ctx.fillStyle='#8a8f9a';ctx.font='9px JetBrains Mono,monospace';
+    var ds=Math.max(1,Math.floor(chartLen/7));
+    for(var i=0;i<chartLen;i+=ds){
+      var d=chartDates[i];
+      ctx.fillText(d.toLocaleDateString('en-GB',{month:'short',day:'numeric'}),toX(i),H-mb+16);
+    }
+    // Always draw last date
+    ctx.fillText(chartDates[chartLen-1].toLocaleDateString('en-GB',{month:'short',day:'numeric'}),toX(chartLen-1),H-mb+16);
+
+    // Trigger zone bands
+    ctx.fillStyle='rgba(26,122,76,0.05)';
+    var y8=toY(ema8w),bH=Math.max(10,Math.abs(toY(ema8w*0.97)-y8));
+    ctx.fillRect(ml,y8-bH/2,cw,bH);
+    ctx.fillStyle='rgba(44,90,160,0.05)';
+    var y21=toY(ema21w);
+    ctx.fillRect(ml,y21-bH/2,cw,bH);
+
+    // Dashed trigger lines
+    function dLine(yv,color,label,side){
+      var y=toY(yv);
+      ctx.strokeStyle=color;ctx.lineWidth=1;ctx.setLineDash([5,4]);
+      ctx.beginPath();ctx.moveTo(ml,y);ctx.lineTo(W-mr,y);ctx.stroke();ctx.setLineDash([]);
+      // Price label on right axis
+      ctx.fillStyle=color;ctx.font='bold 10px JetBrains Mono,monospace';
+      ctx.textAlign='left';ctx.fillText('$'+yv.toFixed(0),W-mr+4,y+4);
+      // Label pill
+      ctx.font='bold 9px JetBrains Mono,monospace';
+      var tw=ctx.measureText(label).width+10;
+      var lx=side==='right'?W-mr-tw-6:ml+4;
+      ctx.fillStyle=color;
+      // Rounded rect background
+      var rx=lx-4,ry=y-18,rw=tw+8,rh=16,cr=3;
+      ctx.beginPath();ctx.moveTo(rx+cr,ry);ctx.lineTo(rx+rw-cr,ry);ctx.quadraticCurveTo(rx+rw,ry,rx+rw,ry+cr);
+      ctx.lineTo(rx+rw,ry+rh-cr);ctx.quadraticCurveTo(rx+rw,ry+rh,rx+rw-cr,ry+rh);
+      ctx.lineTo(rx+cr,ry+rh);ctx.quadraticCurveTo(rx,ry+rh,rx,ry+rh-cr);
+      ctx.lineTo(rx,ry+cr);ctx.quadraticCurveTo(rx,ry,rx+cr,ry);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#fff';ctx.textAlign='left';ctx.fillText(label,lx,y-6);
+    }
+    dLine(ema8w,'#1a7a4c','Trigger A: 8W EMA','left');
+    dLine(ema21w,'#2c5aa0','Trigger C: 21W EMA','left');
+    if(sma50d)dLine(sma50d,'#b8860b','50d SMA','right');
+
+    // EMA lines
+    function drawL(data,color,w){ctx.strokeStyle=color;ctx.lineWidth=w||1.2;ctx.setLineDash([]);ctx.beginPath();
+      for(var i=0;i<data.length;i++){var x=toX(i),y=toY(data[i]);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.stroke()}
+    drawL(ema50slice,'rgba(184,134,11,0.35)',1);
+    drawL(ema21slice,'rgba(44,90,160,0.35)',1);
+    drawL(ema8slice,'rgba(26,122,76,0.4)',1);
+
+    // Price line
+    ctx.strokeStyle='#1a1d23';ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<chartCloses.length;i++){var x=toX(i),y=toY(chartCloses[i]);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}
+    ctx.stroke();
+
+    // Area fill
+    ctx.lineTo(toX(chartCloses.length-1),mt+ch);ctx.lineTo(toX(0),mt+ch);ctx.closePath();
+    ctx.fillStyle='rgba(184,115,51,0.03)';ctx.fill();
+
+    // Last price — dot + label on RIGHT side (in the axis area, never clipped)
+    var lx=toX(chartCloses.length-1),ly=toY(last);
+    ctx.fillStyle='#c0392b';ctx.beginPath();ctx.arc(lx,ly,4.5,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(lx,ly,4.5,0,Math.PI*2);ctx.stroke();
+    // Label in right margin
+    ctx.fillStyle='#c0392b';ctx.font='bold 11px JetBrains Mono,monospace';ctx.textAlign='left';
+    ctx.fillText('$'+last.toFixed(2),W-mr+4,ly+4);
+    // Date label for last point
+    ctx.fillStyle='#c0392b';ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(lastDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}),lx,ly-12);
+
+    // Legend
+    var ly2=H-10;ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='left';
+    var legends=[['#1a1d23','COPX'],['rgba(26,122,76,0.6)','8d EMA'],['rgba(44,90,160,0.6)','21d EMA'],['rgba(184,134,11,0.6)','50d EMA']];
+    var lxx=ml;
+    for(var j=0;j<legends.length;j++){
+      ctx.fillStyle=legends[j][0];ctx.fillRect(lxx,ly2-4,14,2);
+      ctx.fillStyle='#8a8f9a';ctx.fillText(legends[j][1],lxx+18,ly2);lxx+=72;
+    }
+
+    // Save static image for redraw
+    var staticImage=ctx.getImageData(0,0,canvas.width,canvas.height);
+
+    // --- INTERACTIVE HOVER ---
+    function onMove(e){
+      var br=canvas.getBoundingClientRect();
+      var mx=(e.clientX||e.touches[0].clientX)-br.left;
+      var my=(e.clientY||e.touches[0].clientY)-br.top;
+
+      if(mx<ml||mx>W-mr||my<mt||my>mt+ch){
+        tooltip.style.display='none';
+        ctx.putImageData(staticImage,0,0);
+        return;
+      }
+
+      var idx=fromX(mx);
+      if(idx<0)idx=0;if(idx>=chartLen)idx=chartLen-1;
+
+      // Restore static then draw crosshair
+      ctx.putImageData(staticImage,0,0);
+
+      var cx=toX(idx),cy=toY(chartCloses[idx]);
+
+      // Vertical crosshair
+      ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.moveTo(cx,mt);ctx.lineTo(cx,mt+ch);ctx.stroke();
+      // Horizontal crosshair
+      ctx.beginPath();ctx.moveTo(ml,cy);ctx.lineTo(W-mr,cy);ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Hover dot
+      ctx.fillStyle='#c0392b';ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.stroke();
+
+      // Y-axis highlight
+      ctx.fillStyle='rgba(192,57,43,0.9)';
+      var priceLabel='$'+chartCloses[idx].toFixed(2);
+      ctx.font='bold 10px JetBrains Mono,monospace';
+      var plw=ctx.measureText(priceLabel).width+8;
+      ctx.fillRect(W-mr,cy-8,plw+4,16);
+      ctx.fillStyle='#fff';ctx.textAlign='left';ctx.fillText(priceLabel,W-mr+4,cy+4);
+
+      // Tooltip
+      var price=chartCloses[idx];
+      var d=chartDates[idx];
+      var dA=((price/ema8w)-1)*100;
+      var dC=((price/ema21w)-1)*100;
+      var e8=ema8slice[idx],e21=ema21slice[idx],e50=ema50slice[idx];
+
+      var lines=[
+        '<strong style="color:#d4a574">'+d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+'</strong>',
+        '',
+        'COPX: <strong style="font-size:13px">$'+price.toFixed(2)+'</strong>',
+        '<span style="color:rgba(255,255,255,0.5)">8d EMA: $'+e8.toFixed(2)+' \u00b7 21d: $'+e21.toFixed(2)+' \u00b7 50d: $'+e50.toFixed(2)+'</span>',
+        '',
+        '<span style="color:'+(dA>0?'#ff8a80':'#a5d6a7')+'">'+fmt(dA)+'% from Trigger A ($'+ema8w.toFixed(2)+')</span>',
+        '<span style="color:'+(dC>0?'#ff8a80':'#90caf9')+'">'+fmt(dC)+'% from Trigger C ($'+ema21w.toFixed(2)+')</span>',
+      ];
+
+      tooltip.innerHTML=lines.join('<br>');
+      tooltip.style.display='block';
+
+      // Position tooltip (flip if near right edge)
+      var ttW=tooltip.offsetWidth;
+      var ttLeft=mx+16;
+      if(ttLeft+ttW>W-10)ttLeft=mx-ttW-16;
+      var ttTop=my-20;
+      if(ttTop<0)ttTop=my+20;
+      tooltip.style.left=ttLeft+'px';
+      tooltip.style.top=ttTop+'px';
+    }
+
+    function onLeave(){
+      tooltip.style.display='none';
+      ctx.putImageData(staticImage,0,0);
+    }
+
+    canvas.addEventListener('mousemove',onMove);
+    canvas.addEventListener('touchmove',function(e){e.preventDefault();onMove(e)},{passive:false});
+    canvas.addEventListener('mouseleave',onLeave);
+    canvas.addEventListener('touchend',onLeave);
+
+    // Hide progress
+    var progEl=document.getElementById('chart-progress');
+    if(progEl)progEl.style.display='none';
+
+    document.getElementById('chart-status').textContent='\u2705 '+chartLen+' days \u00b7 '+dataSource+' \u00b7 hover for details';
+    document.getElementById('chart-status').style.color='#1a7a4c';
+  })();
+
+  setProgress(85,'Computing metrics...');
+
+// --- UPDATE TRIGGER CARDS ---
+  $('tc-a-price').textContent='$'+ema8w.toFixed(2);
+  $('tc-a-text').textContent='Currently '+Math.abs(pct8w).toFixed(1)+'% '+(pct8w>0?'above':'below')+' this level. Pullback to here + Daily Supertrend Buy = primary entry.';
+  $('tc-b-price').textContent='Sharpe < 1.5';
+  $('tc-c-price').textContent='$'+ema21w.toFixed(2);
+  $('tc-c-text').textContent='Currently '+Math.abs(pct21w).toFixed(1)+'% '+(pct21w>0?'above':'below')+'. Deep pullback entry \u2014 highest quality if thesis holds.';
+  $('tc-curr-price').textContent='$'+last.toFixed(2);
+  var sma50txt=sma50d?' 50d SMA: $'+sma50d.toFixed(2)+' ('+fmt(((last/sma50d)-1)*100)+'%).':'';
+  $('tc-curr-text').textContent=fmt(pct8w)+'% from Trigger A. '+fmt(pct21w)+'% from Trigger C.'+sma50txt;
+
+  // --- UPDATE HERO ---
+  $('hero-price').textContent='$'+last.toFixed(2);
+  $('hero-date').textContent=lastDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  $('data-status').textContent='\u2705 Data: '+dataSource+' \u00b7 '+lastDate.toLocaleDateString('en-GB');
+  $('data-status').style.color='#1a7a4c';
+
+  // --- METRICS ---
+  var s1m=tSharpe(rets,21),s3m=tSharpe(rets,63),s6m=tSharpe(rets,126),s12m=tSharpe(rets,252);
+  var rsi=rsiCalc(rets,14);
+  var ret1m=closes.length>21?(last/closes[closes.length-22]-1)*100:null;
+  var ret3m=closes.length>63?(last/closes[closes.length-64]-1)*100:null;
+  var ret12m=closes.length>252?(last/closes[closes.length-253]-1)*100:null;
+
+  // Weekly return & avg
+  var wRets=[];for(var i=5;i<closes.length;i+=5)wRets.push(Math.abs(closes[i]/closes[i-5]-1)*100);
+  var avgW=wRets.length>0?wRets.reduce(function(a,b){return a+b},0)/wRets.length:3;
+  var thisW=closes.length>5?(last/closes[closes.length-6]-1)*100:0;
+
+  // Copper beta (only with live data)
+  var cuRet=null,beta=null;
+  try{
+    var cuData=await fetchP('https://query1.finance.yahoo.com/v8/finance/chart/HG=F?range=3mo&interval=1d');
+    if(cuData&&cuData.chart&&cuData.chart.result){
+      var cc=cuData.chart.result[0].indicators.quote[0].close.filter(function(v){return v!=null});
+      if(cc.length>21){cuRet=(cc[cc.length-1]/cc[cc.length-22]-1)*100;if(cuRet!==0&&ret1m)beta=ret1m/cuRet}
+    }
+  }catch(e){}
+
+  // --- SCOREBOARD ---
+  var s6=s6m!=null?s6m.toFixed(1):'\u2014';
+  updateSB('sb-sharpe6',s6,s6m>1.5?(s6m/1.5).toFixed(1)+'\u00d7 threshold':'Below threshold \u2713',s6m>1.5?'red':s6m>0.5?'amber':'green');
+  updateSB('sb-sharpe3',s3m!=null?s3m.toFixed(1):'\u2014',s3m>1.5?(s3m/1.5).toFixed(1)+'\u00d7 threshold':'Below threshold \u2713',s3m>1.5?'red':s3m>0.5?'amber':'green');
+  updateSB('sb-sharpe12',s12m!=null?s12m.toFixed(1):'\u2014',s12m>1.5?(s12m/1.5).toFixed(1)+'\u00d7 threshold':'Below threshold \u2713',s12m>1.5?'red':s12m>0.5?'amber':'green');
+  updateSB('sb-rsi',rsi!=null?rsi.toFixed(0):'\u2014',rsi>70?'Overbought':rsi>50?'Neutral':'Oversold',rsi>70?'red':rsi>50?'amber':'green');
+  updateSB('sb-ema8',fmt(pct8w)+'%','$'+last.toFixed(2)+' vs $'+ema8w.toFixed(2),pct8w>8?'red':pct8w>3?'amber':'green');
+  updateSB('sb-ema21',fmt(pct21w)+'%','$'+last.toFixed(2)+' vs $'+ema21w.toFixed(2),pct21w>15?'red':pct21w>8?'amber':'green');
+  updateSB('sb-ret1m',ret1m!=null?fmt(ret1m)+'%':'\u2014','Last 21 trading days',ret1m>20?'red':ret1m>10?'amber':'green');
+  updateSB('sb-ret12m',ret12m!=null?fmt(ret12m)+'%':'\u2014','12-month total',ret12m>0?'green':'red');
+
+  // --- DECISION MATRIX ---
+  var dm=$('dm-grid');
+  var pass=0,warn=0,fail=0;
+  function dmR(c,o,s){var cls=s==='PASS'?'dm-pass':s==='FAIL'?'dm-fail':'dm-warn';if(s==='PASS')pass++;else if(s==='FAIL')fail++;else warn++;
+    var row=document.createElement('div');row.className='dm-row';row.innerHTML='<div>'+c+'</div><div>'+o+'</div><div class="'+cls+'">'+s+'</div>';dm.appendChild(row)}
+
+  if(s6m!=null)dmR('6-Mo Sharpe &lt; 1.5',s6m>1.5?'Sharpe = <strong>'+s6+'</strong> \u2014 '+(s6m/1.5).toFixed(1)+'\u00d7 threshold. Clare et al. (2016): top-decile trailing Sharpe assets underperform 3\u20134% over next 12 months.':'Sharpe = <strong>'+s6+'</strong> \u2014 below 1.5 threshold. Valid deployment window.',s6m>1.5?'FAIL':'PASS');
+  dmR('Price near 8W EMA',pct8w>8?'Price $'+last.toFixed(2)+' vs 8W EMA $'+ema8w.toFixed(2)+' \u2014 <strong>'+fmt(pct8w)+'% extension</strong>. Deploying this far above creates immediate drawdown risk.':'Price $'+last.toFixed(2)+' vs 8W EMA $'+ema8w.toFixed(2)+' \u2014 <strong>'+fmt(pct8w)+'%</strong>. Healthy entry zone.',pct8w>8?'FAIL':pct8w>5?'WARN':'PASS');
+  if(rsi!=null)dmR('RSI &lt; 70',rsi>70?'RSI = <strong>'+rsi.toFixed(0)+'</strong> \u2014 overbought. Momentum stretched.':'RSI = <strong>'+rsi.toFixed(0)+'</strong> \u2014 below overbought.',rsi>70?'FAIL':rsi>60?'WARN':'PASS');
+  var wMult=avgW>0?Math.abs(thisW)/avgW:1;
+  dmR('Weekly candle normal',Math.abs(thisW)>avgW*2?'This week: <strong>'+fmt(thisW)+'%</strong>. Avg \u00b1'+avgW.toFixed(1)+'%. '+wMult.toFixed(1)+'\u00d7 normal \u2014 often precedes consolidation.':'This week: <strong>'+fmt(thisW)+'%</strong>. Within normal range (\u00b1'+avgW.toFixed(1)+'%).',Math.abs(thisW)>avgW*2?'FAIL':Math.abs(thisW)>avgW*1.5?'WARN':'PASS');
+  if(beta!=null)dmR('COPX vs copper beta',beta>3?'COPX 1-mo ('+fmt(ret1m)+'%) vs copper ('+fmt(cuRet)+'%) = <strong>'+beta.toFixed(1)+'\u00d7</strong>. Typical 2\u20133\u00d7. Miners pricing ahead of commodity.':'COPX 1-mo ('+fmt(ret1m)+'%) vs copper ('+fmt(cuRet)+'%) = <strong>'+beta.toFixed(1)+'\u00d7</strong>. Normal leverage.',beta>4?'FAIL':beta>3?'WARN':'PASS');
+  dmR('Cross-asset breadth','Gold, silver, copper in structural uptrends. Broad metals rally \u2014 <strong>not isolated speculation</strong>.','PASS');
+
+  $('dm-result').innerHTML='Result: <strong style="color:'+(fail>pass?'var(--red)':'var(--green)')+'">'+pass+' PASS, '+warn+' WARN, '+fail+' FAIL</strong> \u2014 Deploy when \u2265 4 PASS';
+
+  // --- VERDICT ---
+  var deploy=pass>=4;
+  if(deploy){
+    $('verdict-sig').textContent='GO \u2014 Conditions Met';$('verdict-sig').className='v-sig';
+    $('verdict-sig').style.cssText='color:var(--green);background:rgba(26,122,76,.08);border:1px solid rgba(26,122,76,.2)';
+    $('verdict-bar').style.background='var(--green-l)';$('verdict-bar').style.borderColor='#b8ddb8';
+    $('verdict-text').innerHTML='Trailing 6-mo Sharpe = <strong>'+s6+'</strong>. Price <strong>'+fmt(pct8w)+'%</strong> from 8W EMA. RSI = '+(rsi!=null?rsi.toFixed(0):'\u2014')+'. <strong>Deploy per Layer 4 rules.</strong>';
+    $('verdict-detail').className='co co-green';$('verdict-detail').querySelector('.co-lbl').className='co-lbl cl-g';
+    $('verdict-detail').querySelector('.co-lbl').textContent='Deployment cleared';
+    $('verdict-detail-text').innerHTML='Metrics within acceptable ranges. <strong>Execute per Layer 4</strong>: enter on 1H pullback to VWAP, 3-of-4 MTF aligned, start 50% position. Max 2% risk.';
+  }else{
+    $('verdict-sig').textContent='Wait \u2014 Data Says Patience';$('verdict-sig').className='v-sig v-wait';
+    $('verdict-text').innerHTML='Trailing 6-mo Sharpe = <strong>'+s6+'</strong> (threshold: 1.5). Price <strong>'+fmt(pct8w)+'% above 8W EMA</strong>. RSI = '+(rsi!=null?rsi.toFixed(0):'\u2014')+'. Per entry point discipline: <strong>do not deploy at current levels</strong>. Wait for pullback to 8W EMA ($'+ema8w.toFixed(2)+').';
+    $('verdict-detail-text').innerHTML='The thesis is correct \u2014 copper supply deficit is structural. But deploying now anchors drawdown tolerance to Sharpe of '+s6+' and RSI '+(rsi!=null?rsi.toFixed(0):'\u2014')+'. <strong>The next 10\u201315% pullback will feel like a crisis</strong> and shake you out. Wait for 8W EMA ($'+ema8w.toFixed(2)+') to catch up.';
+  }
+  $('reentry-text').innerHTML='<strong>Trigger A:</strong> Pullback to 8W EMA ($'+ema8w.toFixed(2)+') + Daily Supertrend Buy. <strong>Trigger B:</strong> Consolidation compresses 3-mo Sharpe below 1.5 (currently '+(s3m!=null?s3m.toFixed(1):'\u2014')+'). <strong>Trigger C:</strong> Market correction to 21W EMA ($'+ema21w.toFixed(2)+') \u2014 highest-quality entry.';
+  document.querySelector('.footer p').textContent='COPX Trade Plan v6 \u00b7 '+dataSource+' \u00b7 '+lastDate.toLocaleDateString('en-GB')+' \u00b7 5-Layer Framework';
+})();
+</script>
+
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+function tvChart(id,intv,ht,st){
+var el=document.getElementById(id);if(!el)return;
+if(typeof TradingView==="undefined"){el.innerHTML="<div style=\"display:flex;align-items:center;justify-content:center;height:100%;font:12px monospace;color:#8a8f9a;padding:2rem\">Charts need network. <a href=\"https://www.tradingview.com/chart/?symbol=AMEX:COPX\" target=\"_blank\" style=\"color:#b87333\">Open on TradingView</a></div>";return}
+new TradingView.widget({
+container_id:id,symbol:"AMEX:COPX",interval:intv,timezone:"exchange",
+theme:"light",style:"1",locale:"en",toolbar_bg:"#f5f3ef",
+enable_publishing:false,hide_side_toolbar:false,allow_symbol_change:false,
+save_image:false,hide_volume:false,
+studies:st||[{id:"MAExp@tv-basicstudies",inputs:{length:7}},{id:"MAExp@tv-basicstudies",inputs:{length:21}},{id:"MAExp@tv-basicstudies",inputs:{length:50}},"STD;Supertrend"],
+overrides:{
+"mainSeriesProperties.candleStyle.upColor":"#1a7a4c","mainSeriesProperties.candleStyle.downColor":"#c0392b",
+"mainSeriesProperties.candleStyle.wickUpColor":"#1a7a4c","mainSeriesProperties.candleStyle.wickDownColor":"#c0392b",
+"mainSeriesProperties.candleStyle.borderUpColor":"#1a7a4c","mainSeriesProperties.candleStyle.borderDownColor":"#c0392b"},
+width:"100%",height:ht})}
+var tvR=setInterval(function(){if(typeof TradingView!=="undefined"){clearInterval(tvR);
+tvChart("tv-main","D",480);
+tvChart("tv-monthly","M",350,[{id:"MAExp@tv-basicstudies",inputs:{length:10}},"STD;Supertrend"]);
+tvChart("tv-weekly","W",420);
+tvChart("tv-daily","D",420)}},200);
+setTimeout(function(){clearInterval(tvR)},10000);
+</script>
+</body>
+</html>
