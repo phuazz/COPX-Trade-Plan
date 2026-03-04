@@ -239,7 +239,7 @@ table.t .right{text-align:right}
         </div>
       </div>
       <!-- Milestone markers -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:0;border-top:1px solid var(--border)">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border-top:1px solid var(--border)">
         <!-- Stop -->
         <div style="padding:.6rem .7rem;border-right:1px solid var(--border)">
           <div style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--red)">STOP</div>
@@ -262,12 +262,7 @@ table.t .right{text-align:right}
           <div style="font-family:var(--body);font-size:.75rem;color:var(--mut);margin-top:.2rem">Take 30% off. Trail remaining 70% with Daily Supertrend.</div>
         </div>
         <!-- Round levels -->
-        <div style="padding:.6rem .7rem;border-right:1px solid var(--border);background:rgba(26,122,76,0.05)">
-          <div style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--green)">$100 / $110</div>
-          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--green)">$100&#8211;$110</div>
-          <div style="font-family:var(--mono);font-size:.85rem;color:var(--green)" id="pos-round-dollar">&#8212;</div>
-          <div style="font-family:var(--body);font-size:.75rem;color:var(--mut);margin-top:.2rem">Consider adding 20% at round levels if trend intact.</div>
-        </div>
+        
         <!-- Target (+3R) -->
         <div style="padding:.6rem .7rem;background:rgba(26,122,76,0.07)">
           <div style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--green)">+3R TARGET</div>
@@ -1070,7 +1065,7 @@ var $=function(id){return document.getElementById(id)};
   var _22=document.getElementById("pos-2r-dollar");if(_22)_22.textContent="+\$"+(2*rPS*ES).toFixed(0);
   var _t1=document.getElementById("pos-tgt-price2");if(_t1)_t1.textContent="\$"+tgtPrice.toFixed(2);
   var _t2=document.getElementById("pos-tgt-dollar2");if(_t2)_t2.textContent="+\$"+(3*rPS*ES).toFixed(0);
-  var _rnd=document.getElementById("pos-round-dollar");if(_rnd)_rnd.textContent="+\$"+((100-EP)*ES).toFixed(0)+" / +\$"+((110-EP)*ES).toFixed(0);
+
   // Gauge dot position: stop to target
   var _gd=document.getElementById("pos-gauge-dot");if(_gd){var range=tgtPrice-sLvl;var pct=range>0?((last-sLvl)/range)*100:50;pct=Math.max(2,Math.min(98,pct));_gd.style.left=pct+"%"}
 
@@ -1110,16 +1105,7 @@ enable_publishing:false,hide_side_toolbar:false,allow_symbol_change:false,
 save_image:false,hide_volume:false,
 studies:sl,
 studies_overrides:{
-"Supertrend.Factor":3,"Supertrend.Period":10,
-"Moving Average Exponential.length":7,
-"Moving Average Exponential.plot.color":"#26a69a",
-"Moving Average Exponential.plot.linewidth":2,
-"Moving Average Exponential#1.length":21,
-"Moving Average Exponential#1.plot.color":"#5c6bc0",
-"Moving Average Exponential#1.plot.linewidth":2,
-"Moving Average Exponential#2.length":50,
-"Moving Average Exponential#2.plot.color":"#ef6c00",
-"Moving Average Exponential#2.plot.linewidth":2},
+"Supertrend.Factor":3,"Supertrend.Period":10},
 overrides:{
 "mainSeriesProperties.candleStyle.upColor":"#1a7a4c",
 "mainSeriesProperties.candleStyle.downColor":"#c0392b",
@@ -1128,8 +1114,8 @@ overrides:{
 "mainSeriesProperties.candleStyle.borderUpColor":"#1a7a4c",
 "mainSeriesProperties.candleStyle.borderDownColor":"#c0392b"},
 width:"100%",height:ht})}
-var ds=["MAExp@tv-basicstudies","MAExp@tv-basicstudies","MAExp@tv-basicstudies","STD;Supertrend"];
-var ms=["MAExp@tv-basicstudies","STD;Supertrend"];
+var ds=[{id:"MAExp@tv-basicstudies",inputs:{length:7}},{id:"MAExp@tv-basicstudies",inputs:{length:21}},{id:"MAExp@tv-basicstudies",inputs:{length:50}},"STD;Supertrend"];
+var ms=[{id:"MAExp@tv-basicstudies",inputs:{length:10}},"STD;Supertrend"];
 var tvR=setInterval(function(){if(typeof TradingView!=="undefined"){clearInterval(tvR);
 tvChart("tv-main","D",500,ds);
 tvChart("tv-monthly","M",350,ms);
