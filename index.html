@@ -1074,6 +1074,26 @@ var $=function(id){return document.getElementById(id)};
   // Gauge dot position: stop to target
   var _gd=document.getElementById("pos-gauge-dot");if(_gd){var range=tgtPrice-sLvl;var pct=range>0?((last-sLvl)/range)*100:50;pct=Math.max(2,Math.min(98,pct));_gd.style.left=pct+"%"}
 
+
+  // BREADTH: XME and DXY
+  async function fetchBr(tk,lId,m1Id,m3Id,sId,inv){
+    try{
+      var d=await fetchP("https://query1.finance.yahoo.com/v8/finance/chart/"+tk+"?range=6mo&interval=1d");
+      var q=d.chart.result[0].indicators.quote[0].close.filter(function(v){return v!=null});
+      var c=q[q.length-1],m1=q.length>22?q[q.length-22]:q[0],m3=q.length>66?q[q.length-66]:q[0];
+      var r1=(c-m1)/m1*100,r3=(c-m3)/m3*100;
+      var e1=document.getElementById(lId);if(e1)e1.textContent="$"+c.toFixed(2);
+      var e2=document.getElementById(m1Id);if(e2){e2.textContent=(r1>=0?"+":"")+r1.toFixed(1)+"%";e2.style.color=r1>=0?"var(--green)":"var(--red)"}
+      var e3=document.getElementById(m3Id);if(e3){e3.textContent=(r3>=0?"+":"")+r3.toFixed(1)+"%";e3.style.color=r3>=0?"var(--green)":"var(--red)"}
+      var e4=document.getElementById(sId);if(e4){
+        var bull=inv?(r1<0&&r3<0):(r1>0&&r3>0);
+        e4.textContent=bull?"Confirming":(inv?(r1>2?"Headwind":"Neutral"):(r1<-5?"Diverging":"Neutral"));
+        e4.className=bull?"hl hl-green":"hl hl-amber"}
+    }catch(e){var e4=document.getElementById(sId);if(e4){e4.textContent="Offline";e4.className="hl hl-amber"}}
+  }
+  fetchBr("XME","xme-lvl","xme-1m","xme-3m","xme-sig",false);
+  fetchBr("DX-Y.NYB","dxy-lvl","dxy-1m","dxy-3m","dxy-sig",true);
+
 })();
 </script>
 
