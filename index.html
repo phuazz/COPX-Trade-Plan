@@ -193,84 +193,94 @@ table.t .right{text-align:right}
   <div class="section" style="margin-bottom:1.5rem">
     <div class="s-label" style="color:var(--green)">Live Position</div>
 
-    <!-- Hero row: P&L front and center -->
-    <div style="display:grid;grid-template-columns:1fr 1.8fr 1fr;gap:0;margin-top:.5rem;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-
-      <!-- Left: Entry info -->
+    <!-- Hero row: Entry | P&L | Current -->
+    <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:0;margin-top:.5rem;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <!-- Left: Entry -->
       <div style="padding:1.2rem 1rem;border-right:1px solid var(--border);background:var(--bg)">
-        <div style="font-family:var(--mono);font-size:.55rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:.3rem">Entry</div>
+        <div style="font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:.3rem">Entry</div>
         <div style="font-family:var(--mono);font-size:1.6rem;font-weight:700;color:var(--text)">$83.60</div>
-        <div style="font-family:var(--mono);font-size:.65rem;color:var(--mut);margin-top:.2rem">03 Mar 2026</div>
-        <div style="font-family:var(--mono);font-size:.65rem;color:var(--mut)">100 shares &#8226; pre-fees</div>
-        <div style="font-family:var(--mono);font-size:.65rem;color:var(--mut)">Cost basis: $8,360</div>
+        <div style="font-family:var(--mono);font-size:.78rem;color:var(--mut);margin-top:.2rem">03 Mar 2026</div>
+        <div style="font-family:var(--mono);font-size:.78rem;color:var(--mut)">100 shares &#8226; pre-fees</div>
+        <div style="font-family:var(--mono);font-size:.78rem;color:var(--mut)">Cost basis: $8,360</div>
       </div>
-
       <!-- Center: P&L hero -->
       <div style="padding:1.2rem 1.5rem;text-align:center;position:relative;background:var(--bg-w)" id="pos-hero">
-        <div style="font-family:var(--mono);font-size:.55rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:.2rem">Unrealised P&amp;L</div>
+        <div style="font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:.2rem">Unrealised P&amp;L</div>
         <div style="font-family:var(--mono);font-size:2.4rem;font-weight:800;line-height:1" id="pos-pnl-hero">&#8212;</div>
         <div style="font-family:var(--mono);font-size:.85rem;margin-top:.3rem" id="pos-pnl-pct2">&#8212;</div>
         <div style="display:flex;justify-content:center;gap:1.5rem;margin-top:.7rem">
           <div style="text-align:center">
-            <div style="font-family:var(--mono);font-size:.5rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)">Current</div>
+            <div style="font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)">Current</div>
             <div style="font-family:var(--mono);font-size:1rem;font-weight:700" id="pos-current2">&#8212;</div>
           </div>
           <div style="text-align:center">
-            <div style="font-family:var(--mono);font-size:.5rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)">R-Multiple</div>
+            <div style="font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)">R-Multiple</div>
             <div style="font-family:var(--mono);font-size:1rem;font-weight:700" id="pos-r2">&#8212;</div>
           </div>
         </div>
-        <div style="font-family:var(--mono);font-size:.55rem;color:var(--mut);margin-top:.5rem" id="pos-timestamp2">updating...</div>
+        <div style="font-family:var(--mono);font-size:.72rem;color:var(--mut);margin-top:.5rem" id="pos-timestamp2">updating...</div>
       </div>
-
-      <!-- Right: Risk levels in dollar terms -->
+      <!-- Right: ATR info -->
       <div style="padding:1.2rem 1rem;border-left:1px solid var(--border);background:var(--bg)">
-        <div style="font-family:var(--mono);font-size:.55rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:.5rem">Risk / Reward</div>
-        <!-- Max loss at stop -->
-        <div style="margin-bottom:.6rem">
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-family:var(--mono);font-size:.55rem;color:var(--red);text-transform:uppercase;letter-spacing:.06em">Stop Loss</span>
-            <span style="font-family:var(--mono);font-size:.55rem;color:var(--mut)" id="pos-stop-price2">&#8212;</span>
-          </div>
-          <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--red)" id="pos-stop-dollar2">&#8212;</div>
-          <div style="font-family:var(--mono);font-size:.55rem;color:var(--mut)" id="pos-stop-pct2">&#8212;</div>
+        <div style="font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:.3rem">Volatility</div>
+        <div style="font-family:var(--mono);font-size:.78rem;color:var(--mut);margin-bottom:.5rem">ATR(14) measures 14-day average true range. Used to set stop distance.</div>
+        <div style="font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)">1R = Risk/share</div>
+        <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--text)" id="pos-r-dollar">&#8212;</div>
+        <div style="font-family:var(--mono);font-size:.78rem;color:var(--mut)">Entry &#8211; Stop = 1R</div>
+      </div>
+    </div>
+
+    <!-- Trade plan timeline: visual strip showing stop -> entry -> milestones -> target -->
+    <div style="margin-top:.6rem;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--bg-w)">
+      <!-- The gauge -->
+      <div style="padding:.6rem 1rem .4rem">
+        <div style="position:relative;height:10px;background:linear-gradient(90deg,#c0392b 0%,#c0392b 25%,var(--border-l) 25%,var(--border-l) 50%,#e8b84a 50%,#e8b84a 66%,var(--green) 66%,var(--green) 100%);border-radius:5px;overflow:visible">
+          <div id="pos-gauge-dot" style="position:absolute;top:-5px;width:20px;height:20px;background:var(--copper);border:2.5px solid #fff;border-radius:50%;box-shadow:0 1px 6px rgba(0,0,0,0.25);transform:translateX(-50%);left:50%;transition:left 0.5s ease"></div>
         </div>
-        <!-- Target -->
-        <div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-family:var(--mono);font-size:.55rem;color:var(--green);text-transform:uppercase;letter-spacing:.06em">Target +3R</span>
-            <span style="font-family:var(--mono);font-size:.55rem;color:var(--mut)" id="pos-tgt-price2">&#8212;</span>
-          </div>
-          <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--green)" id="pos-tgt-dollar2">&#8212;</div>
-          <div style="font-family:var(--mono);font-size:.55rem;color:var(--mut)" id="pos-tgt-pct2">&#8212;</div>
+      </div>
+      <!-- Milestone markers -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:0;border-top:1px solid var(--border)">
+        <!-- Stop -->
+        <div style="padding:.6rem .7rem;border-right:1px solid var(--border)">
+          <div style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--red)">STOP</div>
+          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--red)" id="pos-stop-price2">&#8212;</div>
+          <div style="font-family:var(--mono);font-size:.85rem;color:var(--red)" id="pos-stop-dollar2">&#8212;</div>
+          <div style="font-family:var(--body);font-size:.75rem;color:var(--mut);margin-top:.2rem">Exit 100%. Entry &#8211; 3&#215; ATR(14) or Weekly Supertrend.</div>
+        </div>
+        <!-- Breakeven (+1R) -->
+        <div style="padding:.6rem .7rem;border-right:1px solid var(--border);background:rgba(232,184,74,0.04)">
+          <div style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--amber)">+1R TRAIL STOP</div>
+          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--amber)" id="pos-be-price">&#8212;</div>
+          <div style="font-family:var(--mono);font-size:.85rem;color:var(--amber)" id="pos-be-dollar">&#8212;</div>
+          <div style="font-family:var(--body);font-size:.75rem;color:var(--mut);margin-top:.2rem">Move stop to entry price. Trade becomes risk-free.</div>
+        </div>
+        <!-- Take profit (+2R) -->
+        <div style="padding:.6rem .7rem;border-right:1px solid var(--border);background:rgba(26,122,76,0.03)">
+          <div style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--green)">+2R TRIM 30%</div>
+          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--green)" id="pos-2r-price">&#8212;</div>
+          <div style="font-family:var(--mono);font-size:.85rem;color:var(--green)" id="pos-2r-dollar">&#8212;</div>
+          <div style="font-family:var(--body);font-size:.75rem;color:var(--mut);margin-top:.2rem">Take 30% off. Trail remaining 70% with Daily Supertrend.</div>
+        </div>
+        <!-- Round levels -->
+        <div style="padding:.6rem .7rem;border-right:1px solid var(--border);background:rgba(26,122,76,0.05)">
+          <div style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--green)">$100 / $110</div>
+          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--green)">$100&#8211;$110</div>
+          <div style="font-family:var(--mono);font-size:.85rem;color:var(--green)" id="pos-round-dollar">&#8212;</div>
+          <div style="font-family:var(--body);font-size:.75rem;color:var(--mut);margin-top:.2rem">Consider adding 20% at round levels if trend intact.</div>
+        </div>
+        <!-- Target (+3R) -->
+        <div style="padding:.6rem .7rem;background:rgba(26,122,76,0.07)">
+          <div style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--green)">+3R TARGET</div>
+          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--green)" id="pos-tgt-price2">&#8212;</div>
+          <div style="font-family:var(--mono);font-size:.85rem;color:var(--green)" id="pos-tgt-dollar2">&#8212;</div>
+          <div style="font-family:var(--body);font-size:.75rem;color:var(--mut);margin-top:.2rem">Full target. Reassess thesis for continuation.</div>
         </div>
       </div>
     </div>
 
-    <!-- Risk/reward gauge bar -->
-    <div style="margin-top:.5rem;padding:.5rem .8rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-w)">
-      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:.5rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:.3rem">
-        <span>Stop</span>
-        <span>Entry $83.60</span>
-        <span>Target</span>
-      </div>
-      <div style="position:relative;height:8px;background:linear-gradient(90deg,var(--red) 0%,var(--red) 33.3%,var(--border-l) 33.3%,var(--border-l) 66.6%,var(--green) 66.6%,var(--green) 100%);border-radius:4px;overflow:visible">
-        <div id="pos-gauge-dot" style="position:absolute;top:-4px;width:16px;height:16px;background:var(--copper);border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.2);transform:translateX(-50%);left:50%;transition:left 0.5s ease"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:.6rem;margin-top:.3rem">
-        <span style="color:var(--red)" id="pos-gauge-stop">&#8212;</span>
-        <span style="color:var(--green)" id="pos-gauge-tgt">&#8212;</span>
-      </div>
-    </div>
-
-    <!-- Rationale row -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.5rem">
-      <div style="font-family:var(--body);font-size:.72rem;color:var(--mut);padding:.6rem .8rem;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
-        <strong style="color:var(--green)">Entry rationale:</strong> Price corrected ~13% from $96+ to $83.60. 8W EMA area reached. Trigger A conditions met. Initial 100-share position per Layer 4 deployment rules.
-      </div>
-      <div style="font-family:var(--body);font-size:.72rem;color:var(--mut);padding:.6rem .8rem;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
-        <strong style="color:var(--amber)">Active rules:</strong> Stop at entry &#8211; 3&#215; ATR or Weekly Supertrend. Trail to breakeven at +1R. Scale in +50% on next pullback if +1R and weekly bullish.
-      </div>
+    <!-- Entry rationale (compact) -->
+    <div style="font-family:var(--body);font-size:.78rem;color:var(--mut);padding:.5rem .8rem;margin-top:.4rem;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
+      <strong style="color:var(--text)">Entry thesis:</strong> Price corrected ~13% from $96+ to $83.60. 8W EMA area reached. Trigger A conditions met. Initial 100-share position per Layer 4 deployment rules.
     </div>
   </div>
 
@@ -359,16 +369,16 @@ table.t .right{text-align:right}
 
     <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:.8rem">
       <div style="border:1px solid var(--border);border-radius:8px 8px 0 0;overflow:hidden;position:relative">
-        <div style="position:absolute;top:8px;left:12px;z-index:2;font-family:var(--mono);font-size:.55rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--purple);background:rgba(255,255,255,0.92);padding:2px 8px;border-radius:3px;border:1px solid rgba(107,76,154,0.2)">Monthly &#8212; Macro Context</div>
+        <div style="position:absolute;top:8px;left:12px;z-index:2;font-family:var(--mono);font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--purple);background:rgba(255,255,255,0.92);padding:2px 8px;border-radius:3px;border:1px solid rgba(107,76,154,0.2)">Monthly &#8212; Macro Context</div>
         <div id="tv-monthly" style="height:350px"></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:2px">
         <div style="border:1px solid var(--border);border-radius:0;overflow:hidden;position:relative">
-          <div style="position:absolute;top:8px;left:12px;z-index:2;font-family:var(--mono);font-size:.55rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);background:rgba(255,255,255,0.92);padding:2px 8px;border-radius:3px;border:1px solid rgba(26,122,76,0.2)">Weekly &#8212; Permission</div>
+          <div style="position:absolute;top:8px;left:12px;z-index:2;font-family:var(--mono);font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);background:rgba(255,255,255,0.92);padding:2px 8px;border-radius:3px;border:1px solid rgba(26,122,76,0.2)">Weekly &#8212; Permission</div>
           <div id="tv-weekly" style="height:400px"></div>
         </div>
         <div style="border:1px solid var(--border);border-radius:0 0 8px 8px;overflow:hidden;position:relative">
-          <div style="position:absolute;top:8px;left:12px;z-index:2;font-family:var(--mono);font-size:.55rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);background:rgba(255,255,255,0.92);padding:2px 8px;border-radius:3px;border:1px solid rgba(44,90,160,0.2)">Daily &#8212; Setup &amp; Entry</div>
+          <div style="position:absolute;top:8px;left:12px;z-index:2;font-family:var(--mono);font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);background:rgba(255,255,255,0.92);padding:2px 8px;border-radius:3px;border:1px solid rgba(44,90,160,0.2)">Daily &#8212; Setup &amp; Entry</div>
           <div id="tv-daily" style="height:400px"></div>
         </div>
       </div>
@@ -416,8 +426,8 @@ table.t .right{text-align:right}
         <tr><td class="b">Copper Futures</td><td class="m">HG=F</td><td class="m right">~$12,800/t</td><td class="m right" style="color:var(--green)">+8%</td><td class="m right" style="color:var(--green)">+18%</td><td class="hl hl-green" style="margin:0">Confirming</td></tr>
         <tr><td class="b">Gold</td><td class="m">XAUUSD</td><td class="m right">$5,279</td><td class="m right" style="color:var(--green)">+3.4%</td><td class="m right" style="color:var(--green)">+12%</td><td class="hl hl-green" style="margin:0">Confirming</td></tr>
         <tr><td class="b">Silver</td><td class="m">XAGUSD</td><td class="m right">$93.74</td><td class="m right" style="color:var(--green)">+6.2%</td><td class="m right" style="color:var(--green)">+28%</td><td class="hl hl-green" style="margin:0">Confirming</td></tr>
-        <tr><td class="b">Metals &amp; Mining</td><td class="m">XME</td><td class="m right">—</td><td class="m right">Check</td><td class="m right">Check</td><td class="hl hl-amber" style="margin:0">Verify</td></tr>
-        <tr><td class="b">US Dollar</td><td class="m">DXY</td><td class="m right">—</td><td class="m right">Check</td><td class="m right">Check</td><td class="hl hl-amber" style="margin:0">Verify</td></tr>
+        <tr><td class="b">Metals &amp; Mining</td><td class="m">XME</td><td class="m right" id="xme-lvl">—</td><td class="m right" id="xme-1m">—</td><td class="m right" id="xme-3m">—</td><td class="hl hl-amber" id="xme-sig" style="margin:0">Loading</td></tr>
+        <tr><td class="b">US Dollar</td><td class="m">DXY</td><td class="m right" id="dxy-lvl">—</td><td class="m right" id="dxy-1m">—</td><td class="m right" id="dxy-3m">—</td><td class="hl hl-amber" id="dxy-sig" style="margin:0">Loading</td></tr>
       </tbody>
     </table>
     </div>
@@ -1034,44 +1044,35 @@ var $=function(id){return document.getElementById(id)};
   document.querySelector('.footer p').textContent='COPX Trade Plan v6 \u00b7 '+dataSource+' \u00b7 '+lastDate.toLocaleDateString('en-GB')+' \u00b7 5-Layer Framework';
 
   
-  // POSITION TRACKER v2
+  
+  // POSITION TRACKER v3
   var EP=83.60,ES=100,CB=EP*ES,dATR=0;
   if(rets.length>14){var _tr=[];for(var _ri=rets.length-14;_ri<rets.length;_ri++){_tr.push(Math.abs(rets[_ri])*closes[closes.length-rets.length+_ri])}dATR=_tr.reduce(function(a,b){return a+b},0)/_tr.length}
   var sLvl=Math.max(EP-3*dATR,74.53),rPS=EP-sLvl,pPS=last-EP;
-  var tgtPrice=EP+3*rPS;
-  var pTot=pPS*ES,pPct=(pPS/EP)*100;
-  var stopDollar=(sLvl-EP)*ES,tgtDollar=(tgtPrice-EP)*ES;
-  var rM=rPS>0?pPS/rPS:0;
+  var bePrice=EP+rPS,twoRprice=EP+2*rPS,tgtPrice=EP+3*rPS;
+  var pTot=pPS*ES,pPct=(pPS/EP)*100,rM=rPS>0?pPS/rPS:0;
   var isUp=pPS>=0;
-  // Hero P&L
-  var _h1=document.getElementById("pos-pnl-hero");
-  if(_h1){_h1.textContent=(pTot>=0?"+":"")+"\$"+Math.abs(pTot).toFixed(0);_h1.style.color=isUp?"var(--green)":"var(--red)"}
-  var _h2=document.getElementById("pos-pnl-pct2");
-  if(_h2){_h2.textContent=(isUp?"+":"")+pPct.toFixed(1)+"% | "+(rM>=0?"+":"")+rM.toFixed(1)+"R";_h2.style.color=isUp?"var(--green)":"var(--red)"}
-  // Current price
-  var _h3=document.getElementById("pos-current2");
-  if(_h3){_h3.textContent="\$"+last.toFixed(2);_h3.style.color=isUp?"var(--green)":"var(--red)"}
-  var _h4=document.getElementById("pos-r2");
-  if(_h4){_h4.textContent=(rM>=0?"+":"")+rM.toFixed(1)+"R";_h4.style.color=isUp?"var(--green)":"var(--red)"}
-  // Timestamp
-  var _h5=document.getElementById("pos-timestamp2");
-  if(_h5)_h5.textContent=(dataSource.indexOf("live")>=0?"Live":"Static")+" \u2022 "+lastDate.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
-  // Stop in dollar terms
+  // Hero
+  var _h1=document.getElementById("pos-pnl-hero");if(_h1){_h1.textContent=(pTot>=0?"+":"")+"\$"+Math.abs(pTot).toFixed(0);_h1.style.color=isUp?"var(--green)":"var(--red)"}
+  var _h2=document.getElementById("pos-pnl-pct2");if(_h2){_h2.textContent=(isUp?"+":"")+pPct.toFixed(1)+"% | "+(rM>=0?"+":"")+rM.toFixed(1)+"R";_h2.style.color=isUp?"var(--green)":"var(--red)"}
+  var _h3=document.getElementById("pos-current2");if(_h3){_h3.textContent="\$"+last.toFixed(2);_h3.style.color=isUp?"var(--green)":"var(--red)"}
+  var _h4=document.getElementById("pos-r2");if(_h4){_h4.textContent=(rM>=0?"+":"")+rM.toFixed(1)+"R";_h4.style.color=isUp?"var(--green)":"var(--red)"}
+  var _h5=document.getElementById("pos-timestamp2");if(_h5)_h5.textContent=(dataSource.indexOf("live")>=0?"Live":"Static")+" \u2022 "+lastDate.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+  var _hp=document.getElementById("pos-hero");if(_hp)_hp.style.background=isUp?"linear-gradient(135deg,rgba(26,122,76,0.03),rgba(26,122,76,0.08))":"linear-gradient(135deg,rgba(192,57,43,0.03),rgba(192,57,43,0.08))";
+  // R-dollar display
+  var _rd=document.getElementById("pos-r-dollar");if(_rd)_rd.textContent="\$"+rPS.toFixed(2);
+  // Milestone prices and dollar P&L
   var _s1=document.getElementById("pos-stop-price2");if(_s1)_s1.textContent="\$"+sLvl.toFixed(2);
-  var _s2=document.getElementById("pos-stop-dollar2");if(_s2)_s2.textContent="-\$"+Math.abs(stopDollar).toFixed(0);
-  var _s3=document.getElementById("pos-stop-pct2");if(_s3)_s3.textContent=((sLvl-EP)/EP*100).toFixed(1)+"% from entry";
-  // Target in dollar terms
+  var _s2=document.getElementById("pos-stop-dollar2");if(_s2)_s2.textContent="-\$"+(rPS*ES).toFixed(0);
+  var _b1=document.getElementById("pos-be-price");if(_b1)_b1.textContent="\$"+bePrice.toFixed(2);
+  var _b2=document.getElementById("pos-be-dollar");if(_b2)_b2.textContent="+\$"+(rPS*ES).toFixed(0);
+  var _21=document.getElementById("pos-2r-price");if(_21)_21.textContent="\$"+twoRprice.toFixed(2);
+  var _22=document.getElementById("pos-2r-dollar");if(_22)_22.textContent="+\$"+(2*rPS*ES).toFixed(0);
   var _t1=document.getElementById("pos-tgt-price2");if(_t1)_t1.textContent="\$"+tgtPrice.toFixed(2);
-  var _t2=document.getElementById("pos-tgt-dollar2");if(_t2)_t2.textContent="+\$"+tgtDollar.toFixed(0);
-  var _t3=document.getElementById("pos-tgt-pct2");if(_t3)_t3.textContent="+"+(tgtDollar/CB*100).toFixed(1)+"% from entry";
-  // Gauge bar
-  var _g1=document.getElementById("pos-gauge-stop");if(_g1)_g1.textContent="-\$"+Math.abs(stopDollar).toFixed(0);
-  var _g2=document.getElementById("pos-gauge-tgt");if(_g2)_g2.textContent="+\$"+tgtDollar.toFixed(0);
-  var _gd=document.getElementById("pos-gauge-dot");
-  if(_gd){var range=tgtPrice-sLvl;var pct=range>0?((last-sLvl)/range)*100:50;pct=Math.max(2,Math.min(98,pct));_gd.style.left=pct+"%"}
-  // Hero background tint
-  var _hp=document.getElementById("pos-hero");
-  if(_hp)_hp.style.background=isUp?"linear-gradient(135deg,rgba(26,122,76,0.03),rgba(26,122,76,0.08))":"linear-gradient(135deg,rgba(192,57,43,0.03),rgba(192,57,43,0.08))";
+  var _t2=document.getElementById("pos-tgt-dollar2");if(_t2)_t2.textContent="+\$"+(3*rPS*ES).toFixed(0);
+  var _rnd=document.getElementById("pos-round-dollar");if(_rnd)_rnd.textContent="+\$"+((100-EP)*ES).toFixed(0)+" / +\$"+((110-EP)*ES).toFixed(0);
+  // Gauge dot position: stop to target
+  var _gd=document.getElementById("pos-gauge-dot");if(_gd){var range=tgtPrice-sLvl;var pct=range>0?((last-sLvl)/range)*100:50;pct=Math.max(2,Math.min(98,pct));_gd.style.left=pct+"%"}
 
 })();
 </script>
