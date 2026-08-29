@@ -44,7 +44,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:
 
 /* Verdict */
 .verdict{background:var(--copper-l);border-bottom:1px solid #e8d0b8;padding:1.4rem 3rem;display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap}
-.v-sig{font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.3rem .65rem;border-radius:4px;white-space:nowrap}
+/* max-width caps the chip at its container so a long verdict string cannot push
+   the page wider than the viewport. The nowrap stays for the short desktop
+   strings; the ≤768 rule below releases it, because the stale variant of this
+   chip carries the data vintage and is roughly twice as long — measured at
+   390px it ran to 381px inside a 390px viewport and scrolled the page by 12px. */
+.v-sig{font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.3rem .65rem;border-radius:4px;white-space:nowrap;max-width:100%}
 .v-wait{color:var(--red);background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.2)}
 .v-text{font-size:.88rem;color:var(--body);line-height:1.55;flex:1;min-width:200px}
 .v-text strong{color:var(--text)}
@@ -101,6 +106,11 @@ table.t .right{text-align:right}
 .sb-sub{font-size:.68rem;color:var(--sec);margin-top:.15rem}
 .sb-cell.red .sb-val{color:var(--red)}.sb-cell.green .sb-val{color:var(--green)}
 .sb-cell.amber .sb-val{color:var(--amber)}
+/* A metric this page could not compute. Deliberately NOT green: on this
+   scoreboard green reads as "conditions cleared", and an unmeasurable test has
+   cleared nothing. Muted grey says the cell is empty rather than passing. */
+.sb-cell.unknown .sb-val{color:var(--mut)}
+.sb-cell.unknown .sb-sub{font-style:italic}
 
 /* Decision matrix */
 .dm{display:grid;grid-template-columns:180px 1fr 80px;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden}
@@ -147,6 +157,8 @@ table.t .right{text-align:right}
 /* Responsive */
 @media(max-width:768px){
   .hero{padding:2rem 1.3rem}.verdict{padding:1rem 1.3rem;flex-direction:column;gap:.6rem}
+  /* The verdict chip wraps below this width rather than widening the page. */
+  .v-sig{white-space:normal}
   .main{padding:1.5rem 1.15rem}.card-grid,.mtf-grid{grid-template-columns:1fr}
   .scoreboard{grid-template-columns:repeat(2,1fr)}.dm{grid-template-columns:140px 1fr 65px}
   .rule{grid-template-columns:1fr;gap:.2rem}
@@ -191,7 +203,11 @@ table.t .right{text-align:right}
 
   <!-- LIVE POSITION -->
   <div class="section" style="margin-bottom:1.5rem">
-    <div class="s-label" style="color:var(--green)">Live Position</div>
+    <!-- "Live" is a claim about the quote feed, so the script owns it (see
+       pos-section-label below). The static default is the neutral word, because
+       a label that ships saying "Live" is saying it before anything has been
+       fetched — and stays saying it if the fetch never returns. -->
+  <div class="s-label" id="pos-section-label" style="color:var(--mut)">Position</div>
 
     <!-- Hero row: Entry | P&L | Current -->
     <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:0;margin-top:.5rem;border:1px solid var(--border);border-radius:10px;overflow:hidden">
@@ -283,7 +299,14 @@ table.t .right{text-align:right}
   <div class="section">
     <div class="s-label">Price Action &amp; Trigger Levels</div>
     <h2>COPX &#8212; Live Chart with Decision Zones</h2>
-    <div class="s-intro">Interactive daily chart with Supertrend, EMAs, and volume. Hover/click for price data. <span id="chart-status" style="font-family:var(--mono);font-size:.72rem;color:var(--green)">Live via TradingView</span></div>
+    <!-- The status span defaults to a neutral loading state, in the muted grey.
+         It previously read "Live via TradingView" in green, in the static
+         markup — wrong twice over: the chart is a hand-rolled canvas and has
+         nothing to do with TradingView, and the label asserted liveness before
+         a single byte had been fetched. A status element must not ship with a
+         reassuring default; if the script never reaches it, the default is what
+         the reader is left with. -->
+    <div class="s-intro">Interactive daily chart with Supertrend, EMAs, and volume. Hover/click for price data. <span id="chart-status" style="font-family:var(--mono);font-size:.72rem;color:var(--mut)">Loading…</span></div>
 
     <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
       <div id="tv-main" style="height:500px"></div>
@@ -470,7 +493,7 @@ table.t .right{text-align:right}
   <div class="section">
     <div class="s-label">Meta-Layer — Entry Point Discipline</div>
     <h2>Quantitative Deployment Assessment</h2>
-    <div class="s-intro">Live data from Yahoo Finance. Metrics recompute on every page load. <span id="data-status" style="font-family:var(--mono);font-size:.72rem;color:var(--amber)">⏳ Loading…</span></div>
+    <div class="s-intro">Metrics recompute on every page load, from Yahoo Finance quotes where they are reachable and from the baked snapshot where they are not. The badge states which, and how old. <span id="data-status" style="font-family:var(--mono);font-size:.72rem;color:var(--amber)">⏳ Loading…</span></div>
 
     <!-- Scoreboard — populated by JS -->
     <div class="scoreboard" id="sb-top">
@@ -688,21 +711,117 @@ var $=function(id){return document.getElementById(id)};
   function setProgress(p,m){var b=document.getElementById("prog-bar");var t=document.getElementById("prog-text");if(b)b.style.width=p+"%";if(t)t.textContent=m}
   setProgress(20,"Loading embedded data...");
   var entries = STATIC_DATA.prices.map(function(p){return{date:new Date(p[0]),close:p[1]}});
-  var dataSource = 'static (28 Feb 2026)';
+  // Two facts, kept apart. `dataSource` is WHO served the series; `isLive` is
+  // whether a fetch actually replaced the baked one. They were previously a
+  // single string that other surfaces tested with indexOf('live'), which made
+  // the badge a property of the wording rather than of the transport.
+  var dataSource = 'baked snapshot';
+  var isLive = false;
 
   setProgress(40,"Trying live data...");
-  // Step 2: Try to fetch live data
-  var PROXIES=[
-    function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u)},
-    function(u){return 'https://corsproxy.io/?'+encodeURIComponent(u)},
-    function(u){return 'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)},
-  ];
+
+  /* Step 2: quote transport.
+
+     Yahoo's chart endpoint sends no Access-Control-Allow-Origin header, so this
+     page has always reached it through a public CORS proxy. Measured from
+     https://phuazz.github.io:
+
+       2026-08-28  corsproxy.io  HTTP 401 "A valid API key is required"
+                   allorigins    TypeError: Failed to fetch (no ACAO header)
+                   six others probed — codetabs, thingproxy, cors.lol,
+                   cors.workers.dev, allorigins /get, whateverorigin — none
+                   served the Yahoo payload.
+       2026-08-29  corsproxy.io  HTTP 403 "keyless_legacy_url" in 63ms — the
+                                 bare ?<url> form this page used is withdrawn
+                                 separately from the ?url= form, which 401s.
+                   codetabs      no reply inside 8s.
+                   allorigins    200 in 23ms for THIS page's URL, and 0 of 6
+                                 for cache-busted URLs, every one timing out.
+
+     That last line is the trap, and it is why this page looked healthy while the
+     Portfolio Command Centre did not. This page requests one fixed URL with no
+     cache-buster, so allorigins serves it from its edge cache and answers fast.
+     It is not a live quote — it is a copy of unknown age. Measured on the live
+     page at 22:41 SGT on 2026-08-29, the page had rendered a series ending
+     27 Aug and stamped it "✅ Data: live (Yahoo Finance)", while a direct fetch
+     taken seconds later returned bars through 28 Aug. The badge was green, the
+     word was "live", and the data was a session behind.
+
+     Two consequences for the design below. QUOTE_PROXY is a self-hosted
+     Cloudflare Worker, shared with the Portfolio Command Centre and the
+     multi-strategy monitor — all three sit on this origin, which is already in
+     its ALLOWED_ORIGINS, so one deployment serves all three. Source and
+     deployment notes are kept in ONE place rather than copied into three
+     repositories where they would drift:
+
+       https://github.com/phuazz/Portfolio-Command-Centre/blob/main/scripts/quote-proxy-worker.js
+
+     Buying a corsproxy.io key is not an alternative: this repository is public
+     and the page is client-side, so a key shipped here is a published key.
+
+     And freshness is judged from the DATA, never from which code path served it
+     — see sessionsBehind below. A cached response, a stale upstream and a
+     weekend are indistinguishable at the transport layer and identical in what
+     they mean to a reader: the newest bar is older than it should be. */
+  var QUOTE_PROXY = '';
+
+  var PROXIES=[];
+  if(QUOTE_PROXY){
+    // Self-hosted: no third-party edge cache sits in front of it, so the
+    // cache-buster is free and guarantees the freshest bar Yahoo will give.
+    PROXIES.push(function(u){return QUOTE_PROXY.replace(/\/+$/,'')+'/?url='+encodeURIComponent(u+(u.indexOf('?')>=0?'&':'?')+'_cb='+Date.now())});
+  }
+  /* The public proxies stay as a trailing fallback so the page self-heals if
+     anonymous access returns. Deliberately WITHOUT a cache-buster: a warm edge
+     cache is the only thing allorigins still serves reliably, and a stale-but-
+     recent bar clearly labelled beats falling all the way back to the baked
+     February series. The label is what had to change, not the fallback. */
+  PROXIES.push(function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u)});
+  PROXIES.push(function(u){return 'https://corsproxy.io/?url='+encodeURIComponent(u)});
+  PROXIES.push(function(u){return 'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)});
+
+  // Set once any proxy returns a parseable body: it separates a dead transport
+  // from a transport that works but had nothing useful to say.
+  var transportOk=false;
 
   async function fetchP(url){
     for(var i=0;i<PROXIES.length;i++){
-      try{var r=await fetch(PROXIES[i](url),{signal:AbortSignal.timeout(8000)});if(r.ok)return await r.json()}catch(e){continue}}
+      try{
+        var r=await fetch(PROXIES[i](url),{signal:AbortSignal.timeout(8000)});
+        if(!r.ok) continue;
+        var j=await r.json();
+        transportOk=true;
+        return j;
+      }catch(e){continue}}
     return null;
   }
+
+  /* How many trading sessions old the newest bar is.
+
+     Weekday counting, not a holiday calendar: the page cannot carry an NYSE
+     calendar, and over-reporting by a day after a market holiday errs towards
+     caution, which is the direction this page should err in. Arithmetic is done
+     in UTC through the Date API rather than by hand — day offsets are added as
+     whole days to a UTC midnight, so no local-timezone or DST boundary can move
+     a bar across a date line. JavaScript months are 0-indexed (Date.UTC month 0
+     = January); no month arithmetic is done here, only day addition.
+
+     Returns weekdays strictly after the bar's date, up to and including today.
+     A Friday bar read on a Saturday is 0 behind; read on the Monday after, 1. */
+  function _utcMidnight(d){return Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())}
+  function sessionsBehind(lastBar,now){
+    if(!(lastBar instanceof Date)||isNaN(lastBar)) return null;
+    var a=_utcMidnight(lastBar), b=_utcMidnight(now);
+    if(!(b>a)) return 0;
+    var n=0, DAY=86400000, guard=0;
+    for(var t=a+DAY;t<=b;t+=DAY){
+      if(++guard>800) return 800;               // pathological date; still "very stale"
+      var dow=new Date(t).getUTCDay();          // 0=Sunday, 6=Saturday
+      if(dow!==0&&dow!==6) n++;
+    }
+    return n;
+  }
+  window.sessionsBehind=sessionsBehind;         // exposed for the edge-case tests
 
   try{
     var url='https://query1.finance.yahoo.com/v8/finance/chart/COPX?range=1y&interval=1d';
@@ -711,7 +830,7 @@ var $=function(id){return document.getElementById(id)};
       var r=data.chart.result[0],ts=r.timestamp,q=r.indicators.quote[0];
       var live=[];
       for(var i=0;i<ts.length;i++){if(q.close[i]!=null)live.push({date:new Date(ts[i]*1000),close:q.close[i]})}
-      if(live.length>50){entries=live;dataSource='live (Yahoo Finance)'}
+      if(live.length>50){entries=live;dataSource='Yahoo Finance';isLive=true}
     }
   }catch(e){/* fall through to static */}
 
@@ -719,6 +838,44 @@ var $=function(id){return document.getElementById(id)};
   var closes=entries.map(function(e){return e.close});
   var last=closes[closes.length-1];
   var lastDate=entries[entries.length-1].date;
+
+  /* The freshness verdict every surface on this page reads from.
+
+     Derived from the newest bar, not from which branch above ran, so a cached
+     proxy response, a stale upstream and a weekend all resolve the same way.
+     Three states, because they call for three different things from a reader:
+
+       ok      the newest bar is where it should be; the plan below is current.
+       lag     one session behind — the ordinary state before the US close.
+       stale   two or more sessions behind, or nothing arrived at all. Every
+               number below is a historical reading, and this page is a trade
+               plan: the levels, the R multiple and the deployment scoreboard
+               are decision inputs, so a stale one must not be quietly served
+               under a green tick. */
+  var behind = sessionsBehind(lastDate, new Date());
+  var feed = (!isLive || behind===null || behind>=2) ? 'stale' : (behind===1 ? 'lag' : 'ok');
+  var feedColour = feed==='ok' ? '#1a7a4c' : feed==='lag' ? '#b8860b' : '#c0392b';
+  /* Two different questions, and they must not share one flag.
+
+     "Is this current?" (feed==='ok') governs the badges: a one-session lag is
+     worth showing, because a reader comparing a level against the live tape
+     needs to know the page is a close behind.
+
+     "Can the verdict be acted on?" (feedFresh) is a lower bar. One session
+     behind is the ORDINARY state of this page — before the US close, or over a
+     weekend — and neutralising the verdict every evening would train the reader
+     to ignore the warning on the day it matters. Only `stale` disarms it. */
+  var feedFresh = feed!=='stale';
+  var lastDateStr = lastDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  var behindStr = (behind===null) ? 'age unknown'
+                : behind===0 ? 'current'
+                : behind===1 ? '1 session behind'
+                : behind+' sessions behind';
+  // The one sentence that has to be unambiguous when the feed is dead.
+  var feedLine = feed==='ok'  ? '✅ Live · Yahoo Finance · ' + lastDateStr
+               : feed==='lag' ? '◐ Yahoo Finance · ' + lastDateStr + ' · ' + behindStr
+               : isLive       ? '⚠ Quotes stale · ' + lastDateStr + ' · ' + behindStr + ' — figures below are not current'
+                              : '⚠ Quote feed down · showing the baked snapshot to ' + lastDateStr + ' (' + behindStr + ') — figures below are not current';
 
   var rets=[];for(var i=1;i<closes.length;i++)rets.push(closes[i]/closes[i-1]-1);
 
@@ -749,7 +906,17 @@ var $=function(id){return document.getElementById(id)};
 
   (function(){
     var canvas=document.getElementById('priceChart');
-    if(!canvas)return;
+    /* No canvas, no chart. Measured on the live page 2026-08-29: there is no
+       <canvas id="priceChart"> in the markup at all, so this block has been
+       returning here and the ~200 lines below it are unreached. The section
+       renders as an empty bordered box under a status label — which is why that
+       label must not be left saying anything reassuring. Say what is actually
+       true; the reader can then tell a missing chart from a slow one. */
+    if(!canvas){
+      var cs=document.getElementById('chart-status');
+      if(cs){cs.textContent='Chart unavailable — the canvas is missing from this build. The levels and metrics below are unaffected.';cs.style.color='#b8860b';}
+      return;
+    }
     var container=document.getElementById('chart-container');
     var tooltip=document.getElementById('chart-tooltip');
     var dpr=window.devicePixelRatio||1;
@@ -949,8 +1116,8 @@ var $=function(id){return document.getElementById(id)};
     var progEl=document.getElementById('chart-progress');
     if(progEl)progEl.style.display='none';
 
-    document.getElementById('chart-status').textContent='\u2705 '+chartLen+' days \u00b7 '+dataSource+' \u00b7 hover for details';
-    document.getElementById('chart-status').style.color='#1a7a4c';
+    document.getElementById('chart-status').textContent=chartLen+' days \u00b7 '+feedLine+' \u00b7 hover for details';
+    document.getElementById('chart-status').style.color=feedColour;
   })();
 
   setProgress(85,'Computing metrics...');
@@ -967,9 +1134,12 @@ var $=function(id){return document.getElementById(id)};
 
   // --- UPDATE HERO ---
   $('hero-price').textContent='$'+last.toFixed(2);
-  $('hero-date').textContent=lastDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-  $('data-status').textContent='\u2705 Data: '+dataSource+' \u00b7 '+lastDate.toLocaleDateString('en-GB');
-  $('data-status').style.color='#1a7a4c';
+  // The hero price is the newest CLOSE, whatever its vintage. Where that is not
+  // current the date carries the qualifier, so the two never read as "now".
+  $('hero-date').textContent=lastDateStr+(feed==='ok'?'':' \u00b7 '+behindStr);
+  if(feed!=='ok') $('hero-date').style.color=feedColour;
+  $('data-status').textContent=feedLine;
+  $('data-status').style.color=feedColour;
 
   // --- METRICS ---
   var s1m=tSharpe(rets,21),s3m=tSharpe(rets,63),s6m=tSharpe(rets,126),s12m=tSharpe(rets,252);
@@ -993,16 +1163,55 @@ var $=function(id){return document.getElementById(id)};
     }
   }catch(e){}
 
-  // --- SCOREBOARD ---
-  var s6=s6m!=null?s6m.toFixed(1):'\u2014';
-  updateSB('sb-sharpe6',s6,s6m>1.5?(s6m/1.5).toFixed(1)+'\u00d7 threshold':'Below threshold \u2713',s6m>1.5?'red':s6m>0.5?'amber':'green');
-  updateSB('sb-sharpe3',s3m!=null?s3m.toFixed(1):'\u2014',s3m>1.5?(s3m/1.5).toFixed(1)+'\u00d7 threshold':'Below threshold \u2713',s3m>1.5?'red':s3m>0.5?'amber':'green');
-  updateSB('sb-sharpe12',s12m!=null?s12m.toFixed(1):'\u2014',s12m>1.5?(s12m/1.5).toFixed(1)+'\u00d7 threshold':'Below threshold \u2713',s12m>1.5?'red':s12m>0.5?'amber':'green');
-  updateSB('sb-rsi',rsi!=null?rsi.toFixed(0):'\u2014',rsi>70?'Overbought':rsi>50?'Neutral':'Oversold',rsi>70?'red':rsi>50?'amber':'green');
-  updateSB('sb-ema8',fmt(pct8w)+'%','$'+last.toFixed(2)+' vs $'+ema8w.toFixed(2),pct8w>8?'red':pct8w>3?'amber':'green');
-  updateSB('sb-ema21',fmt(pct21w)+'%','$'+last.toFixed(2)+' vs $'+ema21w.toFixed(2),pct21w>15?'red':pct21w>8?'amber':'green');
-  updateSB('sb-ret1m',ret1m!=null?fmt(ret1m)+'%':'\u2014','Last 21 trading days',ret1m>20?'red':ret1m>10?'amber':'green');
-  updateSB('sb-ret12m',ret12m!=null?fmt(ret12m)+'%':'\u2014','12-month total',ret12m>0?'green':'red');
+  /* --- SCOREBOARD ---
+
+     Every cell here is a deployment test, and green means "conditions are not
+     overheated" \u2014 an amber light towards putting capital on. The comparisons
+     below were written as bare `m > threshold` ternaries, which is safe only
+     while m is a number. It is not: tSharpe and rsiCalc return null when the
+     series is too short, and null > 1.5 is false, so the else-branch fired.
+
+     Measured on the live page 2026-08-29: the 12-month Sharpe was unavailable
+     on a 250-bar series (it needs 252), and the cell rendered "\u2014" as its value
+     with "Below threshold \u2713" beneath it, coloured GREEN. A null RSI takes the
+     same path to "Oversold", also green. So a metric this page could not
+     compute was displayed as a passed test \u2014 and on a total feed outage every
+     one of them fails to null together, which would have shown a full row of
+     green passes drawn from no data at all.
+
+     sbSet routes an unmeasurable metric to a neutral cell that says so. It is
+     the one branch that must never be silent, so it is handled centrally
+     instead of at eight call sites. */
+  function sbSet(id, m, valFn, subFn, colFn){
+    if(m==null||!isFinite(m)) return updateSB(id,'\u2014','not measurable on this data','unknown');
+    updateSB(id, valFn(m), subFn(m), colFn(m));
+  }
+  // Also read by the decision matrix and both verdict branches below.
+  var s6 = (s6m!=null&&isFinite(s6m)) ? s6m.toFixed(1) : '\u2014';
+  var sharpeSub = function(m){return m>1.5?(m/1.5).toFixed(1)+'\u00d7 threshold':'Below threshold \u2713'};
+  var sharpeCol = function(m){return m>1.5?'red':m>0.5?'amber':'green'};
+  var one = function(m){return m.toFixed(1)};
+
+  sbSet('sb-sharpe6',  s6m,  one, sharpeSub, sharpeCol);
+  sbSet('sb-sharpe3',  s3m,  one, sharpeSub, sharpeCol);
+  sbSet('sb-sharpe12', s12m, one, sharpeSub, sharpeCol);
+  sbSet('sb-rsi', rsi, function(m){return m.toFixed(0)},
+        function(m){return m>70?'Overbought':m>50?'Neutral':'Oversold'},
+        function(m){return m>70?'red':m>50?'amber':'green'});
+  sbSet('sb-ema8', pct8w, function(m){return fmt(m)+'%'},
+        function(){return '$'+last.toFixed(2)+' vs $'+ema8w.toFixed(2)},
+        function(m){return m>8?'red':m>3?'amber':'green'});
+  sbSet('sb-ema21', pct21w, function(m){return fmt(m)+'%'},
+        function(){return '$'+last.toFixed(2)+' vs $'+ema21w.toFixed(2)},
+        function(m){return m>15?'red':m>8?'amber':'green'});
+  sbSet('sb-ret1m', ret1m, function(m){return fmt(m)+'%'},
+        function(){return 'Last 21 trading days'},
+        function(m){return m>20?'red':m>10?'amber':'green'});
+  // Was `ret12m>0?'green':'red'` \u2014 a null 12-month return took the red branch
+  // and asserted a losing year on a series too short to have one.
+  sbSet('sb-ret12m', ret12m, function(m){return fmt(m)+'%'},
+        function(){return '12-month total'},
+        function(m){return m>0?'green':'red'});
 
   // --- DECISION MATRIX ---
   var dm=$('dm-grid');
@@ -1011,32 +1220,73 @@ var $=function(id){return document.getElementById(id)};
     var row=document.createElement('div');row.className='dm-row';row.innerHTML='<div>'+c+'</div><div>'+o+'</div><div class="'+cls+'">'+s+'</div>';dm.appendChild(row)}
 
   if(s6m!=null)dmR('6-Mo Sharpe &lt; 1.5',s6m>1.5?'Sharpe = <strong>'+s6+'</strong> \u2014 '+(s6m/1.5).toFixed(1)+'\u00d7 threshold. Clare et al. (2016): top-decile trailing Sharpe assets underperform 3\u20134% over next 12 months.':'Sharpe = <strong>'+s6+'</strong> \u2014 below 1.5 threshold. Valid deployment window.',s6m>1.5?'FAIL':'PASS');
-  dmR('Price near 8W EMA',pct8w>8?'Price $'+last.toFixed(2)+' vs 8W EMA $'+ema8w.toFixed(2)+' \u2014 <strong>'+fmt(pct8w)+'% extension</strong>. Deploying this far above creates immediate drawdown risk.':'Price $'+last.toFixed(2)+' vs 8W EMA $'+ema8w.toFixed(2)+' \u2014 <strong>'+fmt(pct8w)+'%</strong>. Healthy entry zone.',pct8w>8?'FAIL':pct8w>5?'WARN':'PASS');
+  // Guarded like the Sharpe and RSI rows above. pct8w is derived from a weekly
+  // EMA, so a short or gapped series yields NaN \u2014 and `NaN > 8` is false, which
+  // sent an uncomputable extension to the else-branch and scored it a PASS
+  // reading "Healthy entry zone". A row that cannot be evaluated is omitted, so
+  // it neither passes nor fails; the deploy test below counts PASSes, and a
+  // phantom PASS is the one error that moves the verdict towards GO.
+  if(isFinite(pct8w))dmR('Price near 8W EMA',pct8w>8?'Price $'+last.toFixed(2)+' vs 8W EMA $'+ema8w.toFixed(2)+' \u2014 <strong>'+fmt(pct8w)+'% extension</strong>. Deploying this far above creates immediate drawdown risk.':'Price $'+last.toFixed(2)+' vs 8W EMA $'+ema8w.toFixed(2)+' \u2014 <strong>'+fmt(pct8w)+'%</strong>. Healthy entry zone.',pct8w>8?'FAIL':pct8w>5?'WARN':'PASS');
   if(rsi!=null)dmR('RSI &lt; 70',rsi>70?'RSI = <strong>'+rsi.toFixed(0)+'</strong> \u2014 overbought. Momentum stretched.':'RSI = <strong>'+rsi.toFixed(0)+'</strong> \u2014 below overbought.',rsi>70?'FAIL':rsi>60?'WARN':'PASS');
   var wMult=avgW>0?Math.abs(thisW)/avgW:1;
+  // thisW defaults to 0 on a series of five bars or fewer, and 0 clears the
+  // "within normal range" test trivially — a PASS awarded for having no data.
+  if(closes.length>5&&isFinite(thisW)&&isFinite(avgW))
   dmR('Weekly candle normal',Math.abs(thisW)>avgW*2?'This week: <strong>'+fmt(thisW)+'%</strong>. Avg \u00b1'+avgW.toFixed(1)+'%. '+wMult.toFixed(1)+'\u00d7 normal \u2014 often precedes consolidation.':'This week: <strong>'+fmt(thisW)+'%</strong>. Within normal range (\u00b1'+avgW.toFixed(1)+'%).',Math.abs(thisW)>avgW*2?'FAIL':Math.abs(thisW)>avgW*1.5?'WARN':'PASS');
   if(beta!=null)dmR('COPX vs copper beta',beta>3?'COPX 1-mo ('+fmt(ret1m)+'%) vs copper ('+fmt(cuRet)+'%) = <strong>'+beta.toFixed(1)+'\u00d7</strong>. Typical 2\u20133\u00d7. Miners pricing ahead of commodity.':'COPX 1-mo ('+fmt(ret1m)+'%) vs copper ('+fmt(cuRet)+'%) = <strong>'+beta.toFixed(1)+'\u00d7</strong>. Normal leverage.',beta>4?'FAIL':beta>3?'WARN':'PASS');
   dmR('Cross-asset breadth','Gold, silver, copper in structural uptrends. Broad metals rally \u2014 <strong>not isolated speculation</strong>.','PASS');
 
-  $('dm-result').innerHTML='Result: <strong style="color:'+(fail>pass?'var(--red)':'var(--green)')+'">'+pass+' PASS, '+warn+' WARN, '+fail+' FAIL</strong> \u2014 Deploy when \u2265 4 PASS';
+  // The row count now varies, because rows that cannot be evaluated are
+  // omitted rather than scored. Say how many ran, so "3 PASS" against a
+  // four-PASS bar cannot be misread as three of six.
+  $('dm-result').innerHTML='Result: <strong style="color:'+(fail>pass?'var(--red)':'var(--green)')+'">'+pass+' PASS, '+warn+' WARN, '+fail+' FAIL</strong> of '+(pass+warn+fail)+' tests run \u2014 Deploy when \u2265 4 PASS'
+    +(feed==='ok'?'':' \u00b7 <strong style="color:'+feedColour+'">on '+lastDateStr+' data, '+behindStr+'</strong>');
 
-  // --- VERDICT ---
+  /* --- VERDICT ---
+
+     The one box on this page that tells the reader to act. It is computed from
+     `entries`, which is the baked February series whenever the quote transport
+     fails \u2014 and it said "GO \u2014 Conditions Met \u00b7 Deploy per Layer 4 rules" with
+     nothing anywhere in it naming the vintage of the data underneath.
+
+     The computation is left alone: it is the same arithmetic on the same rows,
+     and suppressing it would throw away the analysis the reader came for. What
+     changes is that a verdict drawn from stale prices can no longer wear the
+     green chip. The chip goes amber and says what it was computed on, so the
+     figures remain readable as history and unreadable as an instruction. */
   var deploy=pass>=4;
+  var staleChip = feedFresh ? '' : ' \u00b7 on '+lastDateStr+' data';
   if(deploy){
-    $('verdict-sig').textContent='GO \u2014 Conditions Met';$('verdict-sig').className='v-sig';
-    $('verdict-sig').style.cssText='color:var(--green);background:rgba(26,122,76,.08);border:1px solid rgba(26,122,76,.2)';
-    $('verdict-bar').style.background='var(--green-l)';$('verdict-bar').style.borderColor='#b8ddb8';
-    $('verdict-text').innerHTML='Trailing 6-mo Sharpe = <strong>'+s6+'</strong>. Price <strong>'+fmt(pct8w)+'%</strong> from 8W EMA. RSI = '+(rsi!=null?rsi.toFixed(0):'\u2014')+'. <strong>Deploy per Layer 4 rules.</strong>';
-    $('verdict-detail').className='co co-green';$('verdict-detail').querySelector('.co-lbl').className='co-lbl cl-g';
-    $('verdict-detail').querySelector('.co-lbl').textContent='Deployment cleared';
-    $('verdict-detail-text').innerHTML='Metrics within acceptable ranges. <strong>Execute per Layer 4</strong>: enter on 1H pullback to VWAP, 3-of-4 MTF aligned, start 50% position. Max 2% risk.';
+    $('verdict-sig').textContent=(feedFresh?'GO \u2014 Conditions Met':'GO on stale data \u2014 not current')+staleChip;
+    $('verdict-sig').className='v-sig';
+    $('verdict-sig').style.cssText = feedFresh
+      ? 'color:var(--green);background:rgba(26,122,76,.08);border:1px solid rgba(26,122,76,.2)'
+      : 'color:var(--amber);background:rgba(184,134,11,.08);border:1px solid rgba(184,134,11,.25)';
+    $('verdict-bar').style.background = feedFresh ? 'var(--green-l)' : 'var(--amber-l)';
+    $('verdict-bar').style.borderColor = feedFresh ? '#b8ddb8' : '#e0cc8a';
+    $('verdict-text').innerHTML=(feedFresh?'':'<strong style="color:var(--amber)">Computed on '+lastDateStr+' prices ('+behindStr+'), not on today\u2019s. Treat as history.</strong> ')
+      +'Trailing 6-mo Sharpe = <strong>'+s6+'</strong>. Price <strong>'+fmt(pct8w)+'%</strong> from 8W EMA. RSI = '+(rsi!=null?rsi.toFixed(0):'\u2014')+'. '
+      +(feedFresh?'<strong>Deploy per Layer 4 rules.</strong>':'<strong>Do not act on this until the quote feed is restored.</strong>');
+    $('verdict-detail').className = feedFresh ? 'co co-green' : 'co';
+    $('verdict-detail').querySelector('.co-lbl').className = feedFresh ? 'co-lbl cl-g' : 'co-lbl';
+    $('verdict-detail').querySelector('.co-lbl').textContent = feedFresh ? 'Deployment cleared' : 'Deployment not assessable';
+    $('verdict-detail-text').innerHTML = feedFresh
+      ? 'Metrics within acceptable ranges. <strong>Execute per Layer 4</strong>: enter on 1H pullback to VWAP, 3-of-4 MTF aligned, start 50% position. Max 2% risk.'
+      : 'The tests above cleared, but on prices from '+lastDateStr+' ('+behindStr+'). An entry-point discipline that is checked against a stale tape is not a discipline. Restore the quote feed, reload, and read the verdict again before sizing anything.';
   }else{
-    $('verdict-sig').textContent='Wait \u2014 Data Says Patience';$('verdict-sig').className='v-sig v-wait';
-    $('verdict-text').innerHTML='Trailing 6-mo Sharpe = <strong>'+s6+'</strong> (threshold: 1.5). Price <strong>'+fmt(pct8w)+'% above 8W EMA</strong>. RSI = '+(rsi!=null?rsi.toFixed(0):'\u2014')+'. Per entry point discipline: <strong>do not deploy at current levels</strong>. Wait for pullback to 8W EMA ($'+ema8w.toFixed(2)+').';
-    $('verdict-detail-text').innerHTML='The thesis is correct \u2014 copper supply deficit is structural. But deploying now anchors drawdown tolerance to Sharpe of '+s6+' and RSI '+(rsi!=null?rsi.toFixed(0):'\u2014')+'. <strong>The next 10\u201315% pullback will feel like a crisis</strong> and shake you out. Wait for 8W EMA ($'+ema8w.toFixed(2)+') to catch up.';
+    $('verdict-sig').textContent='Wait \u2014 Data Says Patience'+staleChip;$('verdict-sig').className='v-sig v-wait';
+    $('verdict-text').innerHTML=(feedFresh?'':'<strong style="color:var(--amber)">Computed on '+lastDateStr+' prices ('+behindStr+'), not on today\u2019s. Treat as history.</strong> ')
+      +'Trailing 6-mo Sharpe = <strong>'+s6+'</strong> (threshold: 1.5). Price <strong>'+fmt(pct8w)+'% above 8W EMA</strong>. RSI = '+(rsi!=null?rsi.toFixed(0):'\u2014')+'. Per entry point discipline: <strong>do not deploy at current levels</strong>. Wait for pullback to 8W EMA ($'+ema8w.toFixed(2)+').';
+    // "Wait" happens to be the safe side of a stale read, but the paragraph
+    // still quotes levels and tells the reader what to wait FOR \u2014 so it carries
+    // the vintage too. A caveat that appears only on the GO branch teaches the
+    // reader that its absence means fresh, which is exactly backwards.
+    $('verdict-detail-text').innerHTML = feedFresh
+      ? 'The thesis is correct \u2014 copper supply deficit is structural. But deploying now anchors drawdown tolerance to Sharpe of '+s6+' and RSI '+(rsi!=null?rsi.toFixed(0):'\u2014')+'. <strong>The next 10\u201315% pullback will feel like a crisis</strong> and shake you out. Wait for 8W EMA ($'+ema8w.toFixed(2)+') to catch up.'
+      : 'The thesis is unaffected \u2014 the copper supply deficit is structural, and nothing here depends on today\u2019s tape. The levels do. Every figure above was computed on '+lastDateStr+' prices ('+behindStr+'), so the 8W EMA quoted at $'+ema8w.toFixed(2)+' is where it sat then, not where it sits now. <strong>Restore the quote feed and reload before using any level on this page.</strong>';
   }
   $('reentry-text').innerHTML='<strong>Trigger A:</strong> Pullback to 8W EMA ($'+ema8w.toFixed(2)+') + Daily Supertrend Buy. <strong>Trigger B:</strong> Consolidation compresses 3-mo Sharpe below 1.5 (currently '+(s3m!=null?s3m.toFixed(1):'\u2014')+'). <strong>Trigger C:</strong> Market correction to 21W EMA ($'+ema21w.toFixed(2)+') \u2014 highest-quality entry.';
-  document.querySelector('.footer p').textContent='COPX Trade Plan v6 \u00b7 '+dataSource+' \u00b7 '+lastDate.toLocaleDateString('en-GB')+' \u00b7 5-Layer Framework';
+  document.querySelector('.footer p').textContent='COPX Trade Plan v6 \u00b7 '+dataSource+' \u00b7 '+lastDateStr+(behind?' ('+behindStr+')':'')+' \u00b7 5-Layer Framework';
 
   
   
@@ -1052,7 +1302,18 @@ var $=function(id){return document.getElementById(id)};
   var _h2=document.getElementById("pos-pnl-pct2");if(_h2){_h2.textContent=(isUp?"+":"")+pPct.toFixed(1)+"% | "+(rM>=0?"+":"")+rM.toFixed(1)+"R";_h2.style.color=isUp?"var(--green)":"var(--red)"}
   var _h3=document.getElementById("pos-current2");if(_h3){_h3.textContent="\$"+last.toFixed(2);_h3.style.color=isUp?"var(--green)":"var(--red)"}
   var _h4=document.getElementById("pos-r2");if(_h4){_h4.textContent=(rM>=0?"+":"")+rM.toFixed(1)+"R";_h4.style.color=isUp?"var(--green)":"var(--red)"}
-  var _h5=document.getElementById("pos-timestamp2");if(_h5)_h5.textContent=(dataSource.indexOf("live")>=0?"Live":"Static")+" \u2022 "+lastDate.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+  // Was `dataSource.indexOf("live")>=0` \u2014 the badge tracked the wording of a
+  // string rather than the state of the feed, so renaming the source would have
+  // silently relabelled the position card. It reads the verdict directly now.
+  var _h5=document.getElementById("pos-timestamp2");
+  if(_h5){_h5.textContent=(feed==='ok'?'Live':feed==='lag'?'Yahoo, '+behindStr:'Stale \u2014 '+behindStr)+" \u2022 "+lastDateStr;
+          if(feed!=='ok')_h5.style.color=feedColour;}
+  // The section heading carries the same verdict as the timestamp under it. The
+  // P&L, the R multiple and the current price in this card are all struck off
+  // `last`, so the word above them has to agree with the vintage below them.
+  var _hl=document.getElementById("pos-section-label");
+  if(_hl){_hl.textContent = feed==='ok' ? 'Live Position' : 'Position \u2014 priced to '+lastDateStr;
+          _hl.style.color = feed==='ok' ? 'var(--green)' : feedColour;}
   var _hp=document.getElementById("pos-hero");if(_hp)_hp.style.background=isUp?"linear-gradient(135deg,rgba(26,122,76,0.03),rgba(26,122,76,0.08))":"linear-gradient(135deg,rgba(192,57,43,0.03),rgba(192,57,43,0.08))";
   // R-dollar display
   var _rd=document.getElementById("pos-r-dollar");if(_rd)_rd.textContent="\$"+rPS.toFixed(2);
