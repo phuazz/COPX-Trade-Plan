@@ -754,7 +754,7 @@ var $=function(id){return document.getElementById(id)};
      deployment notes are kept in ONE place rather than copied into three
      repositories where they would drift:
 
-       https://github.com/phuazz/Portfolio-Command-Centre/blob/main/scripts/quote-proxy-worker.js
+       https://github.com/phuazz/Portfolio-Command-Centre/blob/main/scripts/quote-proxy-worker.mjs
 
      Buying a corsproxy.io key is not an alternative: this repository is public
      and the page is client-side, so a key shipped here is a published key.
@@ -763,7 +763,7 @@ var $=function(id){return document.getElementById(id)};
      — see sessionsBehind below. A cached response, a stale upstream and a
      weekend are indistinguishable at the transport layer and identical in what
      they mean to a reader: the newest bar is older than it should be. */
-  var QUOTE_PROXY = '';
+  var QUOTE_PROXY = 'https://pcc-quote-proxy.phuaz.workers.dev';
 
   var PROXIES=[];
   if(QUOTE_PROXY){
